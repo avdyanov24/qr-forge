@@ -42,6 +42,12 @@ _Screenshot pending._
 - Scan-risk analysis: recovery-budget exhaustion, faint ink, faint finder patterns, inverted polarity, undersized quiet zone
 - Responsive: the rail and preview stack on narrow screens, with export controls docked
 
+### Layout mode
+
+Places a finished code on a printable piece — bookmark (50 × 150 mm), business card (85 × 55 mm) or A6 flyer (105 × 148 mm). Each takes a card colour, an ink colour, a headline and a supporting line, and exports as PNG at 300 dpi with the pixel dimensions a printer expects.
+
+Knowing the physical size buys a warning the pixel view cannot give you: **module size in millimetres**. A phone camera stops resolving modules below roughly 0.4 mm no matter how much error correction the code carries, and ink spread closes the gap further. The same code that sits at 1.09 mm on a bookmark drops to 0.21 mm once the URL grows and the piece shrinks to a business card — which is the failure that reaches the printer before anyone notices. Layout mode measures it from the module count the encoder actually produced and says so.
+
 ## How the logo budget works
 
 This is the part worth knowing, because it is not how most tools present it.
@@ -116,7 +122,8 @@ qr-forge/
 │   │   ├── Preview.tsx     # QRCodeStyling instance and its lifecycle
 │   │   └── ScanRisk.tsx    # annunciator panel for risk findings
 │   ├── lib/
-│   │   └── qr.ts           # options builder, risk model, export
+│   │   ├── qr.ts           # options builder, risk model, export
+│   │   └── templates.ts    # print sizes, canvas render, print-risk model
 │   ├── App.tsx             # layout and state
 │   ├── index.css           # design tokens and component styles
 │   └── main.tsx
