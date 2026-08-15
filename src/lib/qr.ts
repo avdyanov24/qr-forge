@@ -7,7 +7,20 @@ import type {
   Options,
 } from "qr-code-styling/lib/types";
 
-export type { CornerSquareType, DotType, ErrorCorrectionLevel };
+export type { CornerSquareType, DotType, ErrorCorrectionLevel, FileExtension };
+
+/**
+ * PNG leads because it is the format most things accept. SVG stays sharp at
+ * any size. JPEG and WebP are there for size-constrained uploads — neither
+ * carries transparency, which costs nothing here since the background is
+ * always painted.
+ */
+export const EXPORT_FORMATS: { value: FileExtension; label: string }[] = [
+  { value: "png", label: "PNG" },
+  { value: "svg", label: "SVG" },
+  { value: "jpeg", label: "JPG" },
+  { value: "webp", label: "WebP" },
+];
 
 export const DOT_STYLES: { value: DotType; label: string }[] = [
   { value: "square", label: "Square" },
