@@ -29,13 +29,17 @@ _Screenshot pending._
 - Live preview, debounced at 300ms
 - Text or URL input of any length the format supports
 - Foreground and background colour, via swatch or hex entry
-- Dot styles: square, dots, rounded, classy
-- Corner styles: square, dot, rounded
+- Linear or radial gradient across the modules, with an adjustable angle
+- Separate colour for the three finder patterns
+- Dot styles: square, dots, rounded, extra rounded, classy, classy rounded
+- Corner styles and corner-centre styles: square, dot, rounded
+- Square or circular frame
+- Adjustable quiet zone
 - Error correction levels L / M / Q / H
 - Centred logo upload with a quiet zone, sized against the error-correction budget
 - Output size from 256px to 2048px
 - Export to PNG, SVG, JPEG or WebP at the selected size
-- Scan-risk analysis: recovery-budget exhaustion, low contrast, inverted polarity
+- Scan-risk analysis: recovery-budget exhaustion, faint ink, faint finder patterns, inverted polarity, undersized quiet zone
 - Responsive: the rail and preview stack on narrow screens, with export controls docked
 
 ## How the logo budget works
@@ -51,6 +55,16 @@ maxHiddenDots = imageSize × eccPercent × modules²
 where `eccPercent` is `{ L: 0.07, M: 0.15, Q: 0.25, H: 0.30 }`. So `imageSize` is the share of the *recovery budget* the logo consumes, and a logo can never mathematically exceed what the level can recover — at level L it is simply drawn smaller.
 
 The real failure mode is therefore margin, not overflow. A logo that spends the entire budget still decodes from a clean render, but leaves nothing for glare, ink spread, or a creased label. The app warns above 60% of the budget and flags 85% as having no margin left. The quiet zone around the logo insets the drawn image inside the already-blanked area, so it costs no additional modules.
+
+## Do these codes expire?
+
+No. The code is not a link to anything — your text is physically encoded in the pattern, so scanning it is decoding, not a lookup. There is no server, no account, and no record anywhere that could be switched off. The format is a frozen standard (ISO/IEC 18004), so readers will keep reading it.
+
+This matters more than it sounds. Many free generators produce *dynamic* codes that encode the vendor's own short domain and redirect to your URL. Those genuinely do die — the trial lapses, the company folds, the domain expires — and every code you printed breaks at once. A code from here has no middleman in it, including this project. If this repository disappeared, every code you have already exported would keep working.
+
+What can still break is the **destination**. A code encoding `https://yoursite.com/promo` will deliver that URL faithfully forever, including long after the page 404s. For anything printed or long-lived, encode a URL on a domain you control and redirect from there, so you can change where it goes without reprinting. Plain text, phone numbers and WiFi credentials have nothing external to rot.
+
+The other real failure mode is physical wear — fading, scuffs, creases, glare. Error correction is the margin that absorbs it, and a logo spends exactly that margin, which is why the logo control here is measured as a share of the budget. For print, prefer level H with a small logo or none, and keep the code large. Export the SVG and keep it: it is vector, so you can re-export at any size later without regenerating.
 
 ## Tech stack
 
