@@ -340,17 +340,21 @@ function filename(data: string, extension: FileExtension): string {
   return `qr-${slug || "code"}.${extension}`;
 }
 
+export function downloadBlob(blob: Blob, name: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function exportCode(config: QrConfig, extension: FileExtension): Promise<void> {
   const instance = new QRCodeStyling(buildOptions(config, config.size));
   const blob = (await instance.getRawData(extension)) as Blob | null;
   if (!blob) throw new Error("Could not render the code for export.");
 
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename(config.data, extension);
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename(config.data, extension));
 }

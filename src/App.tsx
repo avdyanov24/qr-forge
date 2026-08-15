@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   analyzeRisk,
   CORNER_DOT_STYLES,
@@ -19,18 +19,35 @@ import {
   type GradientType,
   type QrConfig,
 } from "./lib/qr";
+import {
+  analyzePrintRisk,
+  DEFAULT_LAYOUT,
+  EXPORT_DPI,
+  moduleSizeMm,
+  renderTemplate,
+  templateById,
+  type LayoutConfig,
+} from "./lib/templates";
+import { downloadBlob } from "./lib/qr";
 import { ColorField, LogoField, Section, Segmented, Select, Slider } from "./components/Controls";
 import { ExportActions } from "./components/ExportActions";
+import { LayoutPanel } from "./components/LayoutPanel";
 import { Preview } from "./components/Preview";
 import { ScanRisk } from "./components/ScanRisk";
+import { TemplatePreview } from "./components/TemplatePreview";
 
 const DEBOUNCE_MS = 300;
+
+type Mode = "Code" | "Layout";
 
 export default function App() {
   const [config, setConfig] = useState<QrConfig>(DEFAULT_CONFIG);
   const [draft, setDraft] = useState(DEFAULT_CONFIG.data);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<FileExtension | null>(null);
+  const [mode, setMode] = useState<Mode>("Code");
+  const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
+  const [moduleCount, setModuleCount] = useState<number | null>(null);
 
   // Live preview, debounced 300ms. Every other control applies immediately.
   useEffect(() => {
@@ -44,8 +61,42 @@ export default function App() {
     setConfig((current) => ({ ...current, [key]: value }));
   }
 
-  const findings = useMemo(() => analyzeRisk(config), [config]);
+  const setLayoutValue = useCallback(
+    <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) =>
+      setLayout((current) => ({ ...current, [key]: value })),
+    [],
+  );
+
+  const codeFindings = useMemo(() => analyzeRisk(config), [config]);
+  const printFindings = useMemo(
+    () => (mode === "Layout" ? analyzePrintRisk(config, layout, moduleCount) : []),
+    [mode, config, layout, moduleCount],
+  );
+  const findings = [...printFindings, ...codeFindings];
   const ready = config.data.trim() !== "";
+
+  const codeReadout = `${config.size} × ${config.size} · ECC ${config.ecc} · ${new TextEncoder().encode(config.data).length} bytes`;
+
+  const template = templateById(layout.template);
+  const module = moduleSizeMm(config, template, moduleCount);
+  const layoutReadout = `${template.widthMm} × ${template.heightMm} mm · ${EXPORT_DPI} dpi${
+    module ? ` · ${module.toFixed(2)} mm per module` : ""
+  }`;
+
+  async function downloadLayout() {
+    if (pending) return;
+    setNotice(null);
+    setPending("png");
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const { blob } = await renderTemplate(config, layout, EXPORT_DPI);
+      downloadBlob(blob, `qr-${layout.template}-${EXPORT_DPI}dpi.png`);
+    } catch {
+      setNotice("Export failed. Try a smaller template.");
+    } finally {
+      setPending(null);
+    }
+  }
 
   async function download(extension: FileExtension) {
     if (pending) return;
@@ -75,8 +126,22 @@ export default function App() {
         <header className="px-6 pb-7 pt-8">
           <h1 className="text-[15px] leading-none tracking-[-0.02em] text-bone">QR Generator</h1>
           <p className="label mt-3">Client side only</p>
+          <div className="mt-6">
+            <Segmented
+              label="Mode"
+              value={mode}
+              options={["Code", "Layout"] as Mode[]}
+              onChange={setMode}
+            />
+          </div>
         </header>
 
+        {mode === "Layout" && (
+          <LayoutPanel layout={layout} onChange={setLayoutValue} />
+        )}
+
+        {mode === "Code" && (
+        <>
         <Section title="Content">
           <textarea
             className="field resize-none"
@@ -243,6 +308,26 @@ export default function App() {
             />
           </div>
         </Section>
+        </>
+        )}
+
+        {mode === "Layout" && (
+          <Section title="Export">
+            <div className="hidden lg:block">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!ready || pending !== null}
+                onClick={downloadLayout}
+              >
+                {pending ? "Rendering" : `PNG ${EXPORT_DPI} dpi`}
+              </button>
+              {notice && (
+                <p className="mt-2 font-mono text-[11px] leading-[1.5] text-bone">{notice}</p>
+              )}
+            </div>
+          </Section>
+        )}
 
         <div className="grow" />
       </aside>
@@ -250,7 +335,11 @@ export default function App() {
       {/* Preview field. */}
       <main className="grid-field order-1 flex grow flex-col lg:order-2 lg:overflow-y-auto">
         <div className="flex grow items-center justify-center p-5 sm:p-10 lg:p-16">
-          <Preview config={config} />
+          {mode === "Layout" ? (
+            <TemplatePreview config={config} layout={layout} onRender={setModuleCount} />
+          ) : (
+            <Preview config={config} />
+          )}
         </div>
 
         {findings.length > 0 && (
@@ -263,8 +352,7 @@ export default function App() {
 
         <footer className="shrink-0 border-t border-edge px-6 py-4">
           <p className="font-mono text-[11px] leading-none text-ash tabular-nums">
-            {config.size} × {config.size} · ECC {config.ecc} ·{" "}
-            {new TextEncoder().encode(config.data).length} bytes
+            {mode === "Layout" ? layoutReadout : codeReadout}
           </p>
         </footer>
       </main>
@@ -274,7 +362,23 @@ export default function App() {
         below lg they dock to the bottom of the viewport instead.
       */}
       <div className="sticky bottom-0 order-3 border-t border-edge bg-void px-5 py-4 lg:hidden">
-        <ExportActions ready={ready} pending={pending} notice={notice} onExport={download} />
+        {mode === "Layout" ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!ready || pending !== null}
+              onClick={downloadLayout}
+            >
+              {pending ? "Rendering" : `PNG ${EXPORT_DPI} dpi`}
+            </button>
+            {notice && (
+              <p className="mt-2 font-mono text-[11px] leading-[1.5] text-bone">{notice}</p>
+            )}
+          </>
+        ) : (
+          <ExportActions ready={ready} pending={pending} notice={notice} onExport={download} />
+        )}
       </div>
     </div>
   );
