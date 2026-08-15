@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   analyzeRisk,
+  CORNER_DOT_STYLES,
   CORNER_STYLES,
   DEFAULT_CONFIG,
   DOT_STYLES,
   ECC_LEVELS,
   exportCode,
+  GRADIENT_TYPES,
+  MARGIN_MAX,
+  MARGIN_MIN,
+  MARGIN_STEP,
+  SHAPES,
   SIZE_MAX,
   SIZE_MIN,
   SIZE_STEP,
   type FileExtension,
+  type GradientType,
   type QrConfig,
 } from "./lib/qr";
 import { ColorField, LogoField, Section, Segmented, Select, Slider } from "./components/Controls";
@@ -88,11 +95,71 @@ export default function App() {
             value={config.foreground}
             onChange={(value) => set("foreground", value)}
           />
+
+          <Select
+            label="Gradient"
+            value={config.gradient?.type ?? "none"}
+            options={GRADIENT_TYPES}
+            onChange={(value) =>
+              set(
+                "gradient",
+                value === "none"
+                  ? null
+                  : {
+                      type: value as GradientType,
+                      color: config.gradient?.color ?? "#C8A24A",
+                      rotation: config.gradient?.rotation ?? 45,
+                    },
+              )
+            }
+          />
+
+          {config.gradient && (
+            <>
+              <ColorField
+                label="Gradient end"
+                value={config.gradient.color}
+                onChange={(value) =>
+                  set("gradient", { ...config.gradient!, color: value })
+                }
+              />
+              {config.gradient.type === "linear" && (
+                <Slider
+                  label="Angle"
+                  value={config.gradient.rotation}
+                  min={0}
+                  max={360}
+                  step={15}
+                  display={`${config.gradient.rotation}°`}
+                  onChange={(value) =>
+                    set("gradient", { ...config.gradient!, rotation: value })
+                  }
+                />
+              )}
+            </>
+          )}
+
           <ColorField
             label="Background"
             value={config.background}
             onChange={(value) => set("background", value)}
           />
+
+          <Segmented
+            label="Corner colour"
+            value={config.cornerColor ? "Custom" : "Match"}
+            options={["Match", "Custom"]}
+            onChange={(value) =>
+              set("cornerColor", value === "Custom" ? config.foreground : null)
+            }
+          />
+          {config.cornerColor && (
+            <ColorField
+              label="Corners"
+              value={config.cornerColor}
+              onChange={(value) => set("cornerColor", value)}
+            />
+          )}
         </Section>
 
         <Section title="Form">
@@ -107,6 +174,27 @@ export default function App() {
             value={config.cornerStyle}
             options={CORNER_STYLES}
             onChange={(value) => set("cornerStyle", value)}
+          />
+          <Select
+            label="Corner centre"
+            value={config.cornerDotStyle}
+            options={CORNER_DOT_STYLES}
+            onChange={(value) => set("cornerDotStyle", value)}
+          />
+          <Select
+            label="Frame"
+            value={config.shape}
+            options={SHAPES}
+            onChange={(value) => set("shape", value)}
+          />
+          <Slider
+            label="Quiet zone"
+            value={config.margin}
+            min={MARGIN_MIN}
+            max={MARGIN_MAX}
+            step={MARGIN_STEP}
+            display={`${Math.round(config.margin * 100)}%`}
+            onChange={(value) => set("margin", value)}
           />
         </Section>
 

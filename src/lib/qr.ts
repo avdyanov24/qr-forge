@@ -1,13 +1,24 @@
 import QRCodeStyling from "qr-code-styling";
 import type {
+  CornerDotType,
   CornerSquareType,
   DotType,
   ErrorCorrectionLevel,
   FileExtension,
+  GradientType,
   Options,
+  ShapeType,
 } from "qr-code-styling/lib/types";
 
-export type { CornerSquareType, DotType, ErrorCorrectionLevel, FileExtension };
+export type {
+  CornerDotType,
+  CornerSquareType,
+  DotType,
+  ErrorCorrectionLevel,
+  FileExtension,
+  GradientType,
+  ShapeType,
+};
 
 /**
  * PNG leads because it is the format most things accept. SVG stays sharp at
@@ -26,7 +37,9 @@ export const DOT_STYLES: { value: DotType; label: string }[] = [
   { value: "square", label: "Square" },
   { value: "dots", label: "Dots" },
   { value: "rounded", label: "Rounded" },
+  { value: "extra-rounded", label: "Extra rounded" },
   { value: "classy", label: "Classy" },
+  { value: "classy-rounded", label: "Classy rounded" },
 ];
 
 export const CORNER_STYLES: { value: CornerSquareType; label: string }[] = [
@@ -34,6 +47,34 @@ export const CORNER_STYLES: { value: CornerSquareType; label: string }[] = [
   { value: "dot", label: "Dot" },
   { value: "extra-rounded", label: "Rounded" },
 ];
+
+export const CORNER_DOT_STYLES: { value: CornerDotType; label: string }[] = [
+  { value: "square", label: "Square" },
+  { value: "dot", label: "Dot" },
+  { value: "extra-rounded", label: "Rounded" },
+];
+
+export const SHAPES: { value: ShapeType; label: string }[] = [
+  { value: "square", label: "Square" },
+  { value: "circle", label: "Circle" },
+];
+
+export const GRADIENT_TYPES: { value: GradientType | "none"; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "linear", label: "Linear" },
+  { value: "radial", label: "Radial" },
+];
+
+/**
+ * Quiet zone around the code, as a fraction of its width. The specification
+ * asks for four blank modules on every side, which lands near 10% for a
+ * typical code — hence the default. Below this the code still renders, it
+ * just gets harder for a reader to find against a busy background.
+ */
+export const MARGIN_MIN = 0;
+export const MARGIN_MAX = 0.16;
+export const MARGIN_STEP = 0.01;
+const MARGIN_SPEC_FLOOR = 0.06;
 
 export const ECC_LEVELS: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
 
@@ -48,8 +89,16 @@ export interface QrConfig {
   data: string;
   foreground: string;
   background: string;
+  /** Second stop of the module gradient. Null renders a flat foreground. */
+  gradient: { type: GradientType; color: string; rotation: number } | null;
+  /** Overrides the foreground on the three finder patterns. Null matches it. */
+  cornerColor: string | null;
   dotStyle: DotType;
   cornerStyle: CornerSquareType;
+  cornerDotStyle: CornerDotType;
+  shape: ShapeType;
+  /** Quiet zone around the code, as a fraction of its width. */
+  margin: number;
   ecc: ErrorCorrectionLevel;
   size: number;
   logo: string | null;
@@ -61,8 +110,13 @@ export const DEFAULT_CONFIG: QrConfig = {
   data: "https://example.com",
   foreground: "#08080A",
   background: "#E8E6E1",
+  gradient: null,
+  cornerColor: null,
   dotStyle: "square",
   cornerStyle: "square",
+  cornerDotStyle: "square",
+  shape: "square",
+  margin: 0.1,
   ecc: "Q",
   size: 1024,
   logo: null,
@@ -75,15 +129,32 @@ export const DEFAULT_CONFIG: QrConfig = {
  */
 export const LOGO_QUIET_ZONE = 0.02;
 
-/** Margin around the whole code, as a fraction of its width. */
-const CODE_MARGIN = 0.04;
-
 export function buildOptions(config: QrConfig, size: number): Options {
+  // The library takes gradient rotation in radians; the UI works in degrees.
+  const gradient = config.gradient
+    ? {
+        type: config.gradient.type,
+        rotation:
+          config.gradient.type === "linear" ? (config.gradient.rotation * Math.PI) / 180 : 0,
+        colorStops: [
+          { offset: 0, color: config.foreground },
+          { offset: 1, color: config.gradient.color },
+        ],
+      }
+    : undefined;
+
+  // A custom corner colour is a flat override, so it drops the gradient on the
+  // finder patterns rather than blending two different fills.
+  const corners = config.cornerColor
+    ? { color: config.cornerColor }
+    : { color: config.foreground, gradient };
+
   return {
     type: "svg",
+    shape: config.shape,
     width: size,
     height: size,
-    margin: Math.round(size * CODE_MARGIN),
+    margin: Math.round(size * config.margin),
     data: config.data,
     image: config.logo ?? undefined,
     qrOptions: { errorCorrectionLevel: config.ecc },
@@ -93,9 +164,9 @@ export function buildOptions(config: QrConfig, size: number): Options {
       margin: Math.round(size * LOGO_QUIET_ZONE),
       crossOrigin: "anonymous",
     },
-    dotsOptions: { type: config.dotStyle, color: config.foreground },
-    cornersSquareOptions: { type: config.cornerStyle, color: config.foreground },
-    cornersDotOptions: { color: config.foreground },
+    dotsOptions: { type: config.dotStyle, color: config.foreground, gradient },
+    cornersSquareOptions: { type: config.cornerStyle, ...corners },
+    cornersDotOptions: { type: config.cornerDotStyle, ...corners },
     backgroundOptions: { color: config.background },
   };
 }
@@ -195,12 +266,51 @@ export function analyzeRisk(config: QrConfig): RiskFinding[] {
     }
   }
 
-  const contrast = contrastRatio(config.foreground, config.background);
-  if (contrast < 3) {
+  // A gradient stop or a custom corner colour can each fail on its own, and a
+  // reader only needs one region to go muddy, so the weakest one governs.
+  const inks: { label: string; color: string }[] = [
+    { label: "Foreground", color: config.foreground },
+    ...(config.gradient ? [{ label: "Gradient end", color: config.gradient.color }] : []),
+    ...(config.cornerColor ? [{ label: "Corner colour", color: config.cornerColor }] : []),
+  ];
+
+  const weakest = inks
+    .map((ink) => ({ ...ink, ratio: contrastRatio(ink.color, config.background) }))
+    .reduce((worst, ink) => (ink.ratio < worst.ratio ? ink : worst));
+
+  if (weakest.ratio < 3) {
+    // Severity depends on which region goes faint. A flat foreground takes the
+    // whole code with it. The finder patterns are worse than they look: a
+    // reader uses them to locate the code at all, and they carry no error
+    // correction, so when they fail there is nothing to recover from. A weak
+    // gradient end only dims data modules, which error correction can absorb.
+    const ratio = weakest.ratio.toFixed(1);
+    const finding: Record<string, RiskFinding> = {
+      Foreground: {
+        level: "critical",
+        title: "Insufficient contrast",
+        detail: `Foreground and background differ by ${ratio}:1. Readers need roughly 3:1 to separate modules from the field.`,
+      },
+      "Corner colour": {
+        level: "critical",
+        title: "Finder patterns too faint",
+        detail: `The corner colour sits at ${ratio}:1 against the background. Readers use those three squares to locate the code before decoding it, and they carry no error correction — when they wash out, the code is not found at all rather than partly recovered.`,
+      },
+      "Gradient end": {
+        level: "marginal",
+        title: "Gradient end is faint",
+        detail: `The gradient ends at ${ratio}:1 against the background, under the 3:1 readers want. Only the modules at that end are affected and error correction can usually absorb them, but it is the first thing to fail in print or at an angle.`,
+      },
+    };
+    findings.push(finding[weakest.label]);
+  }
+
+  if (config.margin < MARGIN_SPEC_FLOOR) {
     findings.push({
-      level: "critical",
-      title: "Insufficient contrast",
-      detail: `Foreground and background differ by ${contrast.toFixed(1)}:1. Readers need roughly 3:1 to separate modules from the field.`,
+      level: "marginal",
+      title: "Quiet zone below specification",
+      detail:
+        "The format asks for four blank modules on every side so a reader can find the code's edges. This one is narrower. It will scan against a plain field, but risks failing on a busy background or against the edge of a printed page.",
     });
   }
 
