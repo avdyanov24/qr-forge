@@ -45,7 +45,7 @@ export interface QrConfig {
 }
 
 export const DEFAULT_CONFIG: QrConfig = {
-  data: "https://anthropic.com",
+  data: "https://example.com",
   foreground: "#08080A",
   background: "#E8E6E1",
   dotStyle: "square",
