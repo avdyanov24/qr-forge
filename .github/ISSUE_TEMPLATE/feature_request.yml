@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a capability or improvement
+labels: [feature]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today? Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      description: >
+        This app is client-side only and follows a fixed design system
+        (see CONTRIBUTING.md).
+      options:
+        - label: This can be done without a backend or network call
+        - label: This fits the existing design system, or I have explained why it should change

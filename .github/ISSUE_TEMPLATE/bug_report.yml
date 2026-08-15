@@ -1,0 +1,54 @@
+name: Bug report
+description: Something behaves incorrectly
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Enter ...
+        2. Set error correction to ...
+        3. Export as ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Generator settings
+      description: >
+        The combination usually matters more than any single setting.
+      value: |
+        - Input text:
+        - Error correction:
+        - Logo attached and size:
+        - Foreground / background:
+        - Output size:
+        - Dot / corner style:
+    validations:
+      required: false
+
+  - type: input
+    id: reader
+    attributes:
+      label: Reader used
+      description: For scanning failures — which app or device failed to read the code.
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 141 on macOS 15
+    validations:
+      required: true
