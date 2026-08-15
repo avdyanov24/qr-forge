@@ -2,6 +2,8 @@
 
 A QR code generator that runs entirely in the browser and tells you when your design has stopped being scannable.
 
+**[Live app →](https://avdyanov24.github.io/qr-forge/)**
+
 [![CI](https://github.com/avdyanov24/qr-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/avdyanov24/qr-forge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![React](https://img.shields.io/badge/React-19-149eca.svg)](https://react.dev)
@@ -79,6 +81,12 @@ npm run build      # typecheck and produce dist/
 npm run typecheck  # types only
 npm run preview    # serve the built output
 ```
+
+## Deployment
+
+Pushes to `main` build and publish to GitHub Pages via `.github/workflows/deploy.yml`.
+
+Pages serves the site from `/qr-forge/` rather than the domain root, so the workflow sets `VITE_BASE_PATH=/qr-forge/` at build time. Local development and any root-domain host need no configuration — `base` falls back to `/`. To deploy under a different path, set that variable to match.
 
 ## Project structure
 
