@@ -18,7 +18,7 @@ Nothing leaves the browser. There is no backend, no upload, and no persistence â
 
 ## Demo
 
-<!-- TODO: replace with a screenshot or GIF of the generator (see #1) -->
+<!-- TODO: replace with a screenshot or GIF of the generator (see #11) -->
 
 _Screenshot pending._
 
