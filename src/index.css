@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@theme {
+  --color-void: #08080a;
+  --color-panel: #0f1013;
+  --color-edge: #1c1d22;
+  --color-ash: #6b6d76;
+  --color-bone: #e8e6e1;
+  --color-signal: #c8a24a;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --radius-sharp: 2px;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    /* The single permitted shadow: a top inner edge on panels. */
+    --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-void);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Transitions are permitted on color and border only. Nothing moves. */
+  a,
+  button,
+  input,
+  select,
+  label {
+    transition:
+      color 150ms ease-out,
+      border-color 150ms ease-out,
+      background-color 150ms ease-out;
+  }
+
+  ::selection {
+    background-color: var(--color-edge);
+    color: var(--color-bone);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-edge);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ash);
+  }
+}
+
+@layer components {
+  /* 11px, uppercase, 0.12em, --ash. */
+  .label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-ash);
+  }
+
+  .panel {
+    background-color: var(--color-panel);
+    box-shadow: var(--edge-light);
+  }
+
+  /* Text + mono value inputs. */
+  .field {
+    width: 100%;
+    background-color: var(--color-panel);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-sharp);
+    color: var(--color-bone);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 10px 12px;
+    outline: none;
+    box-shadow: var(--edge-light);
+  }
+  .field::placeholder {
+    color: var(--color-ash);
+  }
+  .field:hover {
+    border-color: var(--color-ash);
+  }
+  /* Accent instance: focus. */
+  .field:focus {
+    border-color: var(--color-signal);
+  }
+
+  .select {
+    appearance: none;
+    width: 100%;
+    background-color: var(--color-panel);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-sharp);
+    color: var(--color-bone);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 9px 30px 9px 12px;
+    outline: none;
+    box-shadow: var(--edge-light);
+    cursor: pointer;
+  }
+  .select:hover {
+    border-color: var(--color-ash);
+  }
+  .select:focus {
+    border-color: var(--color-signal);
+  }
+  .select option {
+    background-color: var(--color-panel);
+    color: var(--color-bone);
+  }
+
+  /* Range: a 1px rule with a hard square thumb. Nothing rounded. */
+  .range {
+    appearance: none;
+    width: 100%;
+    height: 16px;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 1px;
+    background: var(--color-edge);
+    transition: background-color 150ms ease-out;
+  }
+  .range:hover::-webkit-slider-runnable-track {
+    background: var(--color-ash);
+  }
+  .range::-webkit-slider-thumb {
+    appearance: none;
+    width: 3px;
+    height: 15px;
+    margin-top: -7px;
+    background: var(--color-bone);
+    border: 0;
+    border-radius: 0;
+  }
+  .range::-moz-range-track {
+    height: 1px;
+    background: var(--color-edge);
+  }
+  .range:hover::-moz-range-track {
+    background: var(--color-ash);
+  }
+  .range::-moz-range-thumb {
+    width: 3px;
+    height: 15px;
+    background: var(--color-bone);
+    border: 0;
+    border-radius: 0;
+  }
+  .range:focus::-webkit-slider-runnable-track {
+    background: var(--color-signal);
+  }
+  .range:focus::-moz-range-track {
+    background: var(--color-signal);
+  }
+
+  /* Secondary action. */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 38px;
+    background-color: transparent;
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-sharp);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--color-ash);
+  }
+  .btn:focus-visible {
+    border-color: var(--color-signal);
+  }
+  .btn:disabled {
+    color: var(--color-ash);
+    cursor: not-allowed;
+  }
+
+  /* Accent instance: the primary action. */
+  .btn-primary {
+    background-color: var(--color-signal);
+    border-color: var(--color-signal);
+    color: var(--color-void);
+  }
+  .btn-primary:hover:not(:disabled) {
+    border-color: var(--color-signal);
+  }
+  .btn-primary:disabled {
+    background-color: transparent;
+    border-color: var(--color-edge);
+    color: var(--color-ash);
+  }
+
+  /* The preview field: a 24px rule grid. */
+  .grid-field {
+    background-color: var(--color-void);
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
