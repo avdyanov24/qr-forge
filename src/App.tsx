@@ -9,9 +9,11 @@ import {
   SIZE_MAX,
   SIZE_MIN,
   SIZE_STEP,
+  type FileExtension,
   type QrConfig,
 } from "./lib/qr";
 import { ColorField, LogoField, Section, Segmented, Select, Slider } from "./components/Controls";
+import { ExportActions } from "./components/ExportActions";
 import { Preview } from "./components/Preview";
 import { ScanRisk } from "./components/ScanRisk";
 
@@ -21,6 +23,7 @@ export default function App() {
   const [config, setConfig] = useState<QrConfig>(DEFAULT_CONFIG);
   const [draft, setDraft] = useState(DEFAULT_CONFIG.data);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<FileExtension | null>(null);
 
   // Live preview, debounced 300ms. Every other control applies immediately.
   useEffect(() => {
@@ -37,19 +40,31 @@ export default function App() {
   const findings = useMemo(() => analyzeRisk(config), [config]);
   const ready = config.data.trim() !== "";
 
-  async function download(extension: "png" | "svg") {
+  async function download(extension: FileExtension) {
+    if (pending) return;
+    setNotice(null);
+    setPending(extension);
     try {
-      setNotice(null);
+      // Yield so the pending state paints before the thread blocks. This is a
+      // timeout rather than requestAnimationFrame, which never fires while the
+      // tab is hidden and would strand the export mid-flight.
+      await new Promise((resolve) => setTimeout(resolve, 0));
       await exportCode(config, extension);
     } catch {
       setNotice("Export failed. Try a smaller size.");
+    } finally {
+      setPending(null);
     }
   }
 
   return (
-    <div className="flex h-full">
-      {/* Control rail — 280px, separated by a single edge line. */}
-      <aside className="flex w-[280px] shrink-0 flex-col overflow-y-auto border-r border-edge">
+    <div className="flex min-h-full flex-col lg:h-full lg:flex-row">
+      {/*
+        Below lg the two regions stack and the page scrolls as one, with the
+        preview first — it is the object, the rail only describes it. Above
+        lg the rail is a fixed 280px column that scrolls on its own.
+      */}
+      <aside className="order-2 flex w-full shrink-0 flex-col border-t border-edge lg:order-1 lg:w-[280px] lg:overflow-y-auto lg:border-t-0 lg:border-r">
         <header className="px-6 pb-7 pt-8">
           <h1 className="text-[15px] leading-none tracking-[-0.02em] text-bone">QR Generator</h1>
           <p className="label mt-3">Client side only</p>
@@ -130,38 +145,28 @@ export default function App() {
             display={`${config.size} px`}
             onChange={(value) => set("size", value)}
           />
-          <div className="mt-1 flex gap-2">
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!ready}
-              onClick={() => download("png")}
-            >
-              PNG
-            </button>
-            <button
-              type="button"
-              className="btn"
-              disabled={!ready}
-              onClick={() => download("svg")}
-            >
-              SVG
-            </button>
+          {/* Below lg these live in the docked bar instead. */}
+          <div className="mt-1 hidden lg:block">
+            <ExportActions
+              ready={ready}
+              pending={pending}
+              notice={notice}
+              onExport={download}
+            />
           </div>
-          {notice && <p className="font-mono text-[11px] leading-[1.5] text-bone">{notice}</p>}
         </Section>
 
         <div className="grow" />
       </aside>
 
       {/* Preview field. */}
-      <main className="grid-field flex grow flex-col overflow-y-auto">
-        <div className="flex grow items-center justify-center p-16">
+      <main className="grid-field order-1 flex grow flex-col lg:order-2 lg:overflow-y-auto">
+        <div className="flex grow items-center justify-center p-5 sm:p-10 lg:p-16">
           <Preview config={config} />
         </div>
 
         {findings.length > 0 && (
-          <div className="shrink-0 px-16 pb-10">
+          <div className="shrink-0 px-5 pb-8 sm:px-10 lg:px-16 lg:pb-10">
             <div className="mx-auto max-w-[540px]">
               <ScanRisk findings={findings} />
             </div>
@@ -175,6 +180,14 @@ export default function App() {
           </p>
         </footer>
       </main>
+
+      {/*
+        Stacked, the rail runs long enough to bury the export controls, so
+        below lg they dock to the bottom of the viewport instead.
+      */}
+      <div className="sticky bottom-0 order-3 border-t border-edge bg-void px-5 py-4 lg:hidden">
+        <ExportActions ready={ready} pending={pending} notice={notice} onExport={download} />
+      </div>
     </div>
   );
 }

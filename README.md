@@ -34,8 +34,9 @@ _Screenshot pending._
 - Error correction levels L / M / Q / H
 - Centred logo upload with a quiet zone, sized against the error-correction budget
 - Output size from 256px to 2048px
-- PNG and SVG export at the selected size
+- Export to PNG, SVG, JPEG or WebP at the selected size
 - Scan-risk analysis: recovery-budget exhaustion, low contrast, inverted polarity
+- Responsive: the rail and preview stack on narrow screens, with export controls docked
 
 ## How the logo budget works
 
@@ -117,8 +118,7 @@ State lives in a single `QrConfig` object in `App.tsx`. `src/lib/qr.ts` holds ev
 - Unit tests for the risk model and export helpers
 - Linting and formatting in CI
 - Keyboard and screen-reader passes over the control rail
-- Responsive layout below the 280px rail plus preview breakpoint
-- Additional export formats (JPEG, WebP)
+- Move rasterisation off the main thread so large exports do not block
 - Batch generation from a pasted list
 
 ## License
