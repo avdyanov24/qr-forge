@@ -51,7 +51,7 @@ export function LayoutPanel({
         <Slider
           label="Margin"
           value={layout.marginScale}
-          min={0.3}
+          min={0.1}
           max={2}
           step={0.05}
           display={`${marginMm(layout, template).toFixed(1)} mm`}
