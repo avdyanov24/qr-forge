@@ -1,10 +1,19 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Generator</title>
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // Stamped before first paint so the page never flashes the wrong palette.
+      // Nothing is stored — the preference is the system's until the toggle is
+      // used, and that choice lasts the session.
+      document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: light)")
+        .matches
+        ? "light"
+        : "dark";
+    </script>
   </head>
   <body>
     <div id="root"></div>

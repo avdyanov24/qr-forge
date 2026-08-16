@@ -48,6 +48,7 @@ import { Preview } from "./components/Preview";
 import { ScanRisk } from "./components/ScanRisk";
 import { TemplatePreview } from "./components/TemplatePreview";
 import { StressTest } from "./components/StressTest";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { runStressTest, stressTestSupported, type StressReport } from "./lib/stress";
 import { ZOOM_FIT, ZoomControl } from "./components/ZoomControl";
 
@@ -465,11 +466,19 @@ export default function App() {
           </div>
         )}
 
-        <footer className="flex shrink-0 items-center justify-between gap-4 border-t border-edge px-6 py-3">
-          <p className="font-mono text-[11px] leading-none text-ash tabular-nums">
+        {/*
+          Wraps as whole rows rather than letting the readout break mid-line.
+          With two controls beside it there is not enough width on a phone, and
+          a three-line readout reads as an accident.
+        */}
+        <footer className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-edge px-6 py-3">
+          <p className="font-mono text-[11px] leading-none text-ash whitespace-nowrap tabular-nums">
             {mode === "Layout" ? layoutReadout : codeReadout}
           </p>
-          <ZoomControl zoom={zoom} onChange={setZoom} />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <ZoomControl zoom={zoom} onChange={setZoom} />
+          </div>
         </footer>
       </main>
 

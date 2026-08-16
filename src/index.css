@@ -3,20 +3,18 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 
-@theme {
-  --color-void: #08080a;
-  --color-panel: #0f1013;
-  --color-edge: #1c1d22;
-  /*
-    Lightened from #6B6D76, which measured 3.88:1 on --void and 3.69:1 on
-    --panel — under the 4.5:1 WCAG AA needs for 11px labels, which is most of
-    the secondary text in the interface. This is the smallest step that clears
-    it on both surfaces with margin: 4.95:1 and 4.70:1. The hue and the muted
-    character are unchanged.
-  */
-  --color-ash: #7c7e87;
-  --color-bone: #e8e6e1;
-  --color-signal: #c8a24a;
+/*
+  `inline` so the utilities compile to var() references rather than baked
+  values. That is what lets the palette below be swapped at runtime — without
+  it, bg-void would hard-code the dark colour and the theme could not change.
+*/
+@theme inline {
+  --color-void: var(--c-void);
+  --color-panel: var(--c-panel);
+  --color-edge: var(--c-edge);
+  --color-ash: var(--c-ash);
+  --color-bone: var(--c-bone);
+  --color-signal: var(--c-signal);
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
@@ -25,10 +23,57 @@
 }
 
 @layer base {
-  :root {
+  /*
+    Dark is the original and stays the default. A small script in index.html
+    stamps data-theme from the system preference before first paint, so there
+    is one source of truth here and no flash of the wrong palette.
+  */
+  :root,
+  :root[data-theme="dark"] {
     color-scheme: dark;
+
+    --c-void: #08080a;
+    --c-panel: #0f1013;
+    --c-edge: #1c1d22;
+    /*
+      Lightened from #6B6D76, which measured 3.88:1 on --void and 3.69:1 on
+      --panel — under the 4.5:1 WCAG AA needs for 11px labels, which is most
+      of the secondary text. This clears both at 4.95:1 and 4.70:1.
+    */
+    --c-ash: #7c7e87;
+    --c-bone: #e8e6e1;
+    --c-signal: #c8a24a;
+
     /* The single permitted shadow: a top inner edge on panels. */
     --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --grid-line: rgba(255, 255, 255, 0.02);
+    /* Ink that sits on the accent. Dark in both themes — it is not a seventh
+       colour, it is whichever existing ink reads on brass. */
+    --c-on-signal: #08080a;
+  }
+
+  /*
+    The same system on paper rather than an inversion. Every value was measured
+    against the same bar the dark palette is held to: --ash clears 4.5:1 on both
+    surfaces (4.84 and 5.47), and --signal is darkened to #9E8032 so a focus
+    border still reaches the 3:1 that non-text UI needs — the original brass
+    manages only 2.13:1 on a light ground, which would have made focus the one
+    thing you could not see.
+  */
+  :root[data-theme="light"] {
+    color-scheme: light;
+
+    --c-void: #f2f1ee;
+    --c-panel: #ffffff;
+    --c-edge: #dedcd6;
+    --c-ash: #676972;
+    --c-bone: #17171a;
+    --c-signal: #9e8032;
+
+    /* A raised top edge does not read on white. Borders carry it instead. */
+    --edge-light: none;
+    --grid-line: rgba(0, 0, 0, 0.04);
+    --c-on-signal: #17171a;
   }
 
   html,
@@ -43,6 +88,22 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /*
+    Held for the instant the palette is swapped.
+
+    Transitions are for interaction feedback, not for repainting the entire
+    interface. Worse, a property transitioning from a custom property that
+    changed on an ancestor does not reliably re-run — buttons were left
+    showing the previous theme's accent indefinitely, not just for 150ms.
+    Suppressing transitions across the swap fixes that and makes the change
+    instant, which is what it should be.
+  */
+  :root[data-theme-switching] *,
+  :root[data-theme-switching] *::before,
+  :root[data-theme-switching] *::after {
+    transition: none !important;
   }
 
   /* Transitions are permitted on color and border only. Nothing moves. */
@@ -223,7 +284,9 @@
   .btn-primary {
     background-color: var(--color-signal);
     border-color: var(--color-signal);
-    color: var(--color-void);
+    /* Not --color-void: that inverts with the theme and would put pale text
+       on brass in light mode, at 3.3:1. */
+    color: var(--c-on-signal);
   }
   .btn-primary:hover:not(:disabled) {
     border-color: var(--color-signal);
@@ -238,8 +301,8 @@
   .grid-field {
     background-color: var(--color-void);
     background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 }
