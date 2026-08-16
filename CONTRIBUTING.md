@@ -60,6 +60,7 @@ The interface follows a fixed specification, and it is deliberately narrow. Befo
 - No border radius above 4px.
 - Transitions are 150ms ease-out, on colour and border only. Nothing moves or scales on hover.
 - Labels are 11px, uppercase, 0.12em tracking, `--ash`. Values and numbers are JetBrains Mono.
+- `--ash` is the floor for readable text and carries most of the secondary copy, so it has to clear 4.5:1 against both `--void` and `--panel`. It was lightened from the original `#6B6D76` for exactly this reason. If you darken it, check both surfaces first.
 
 If a section feels cramped, remove an element rather than shrinking the padding.
 

@@ -7,7 +7,14 @@
   --color-void: #08080a;
   --color-panel: #0f1013;
   --color-edge: #1c1d22;
-  --color-ash: #6b6d76;
+  /*
+    Lightened from #6B6D76, which measured 3.88:1 on --void and 3.69:1 on
+    --panel — under the 4.5:1 WCAG AA needs for 11px labels, which is most of
+    the secondary text in the interface. This is the smallest step that clears
+    it on both surfaces with margin: 4.95:1 and 4.70:1. The hue and the muted
+    character are unchanged.
+  */
+  --color-ash: #7c7e87;
   --color-bone: #e8e6e1;
   --color-signal: #c8a24a;
 
