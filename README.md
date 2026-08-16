@@ -16,7 +16,7 @@ Most QR generators will happily hand you a code that does not scan. They let you
 
 QR Forge makes that budget visible. The logo control is expressed as a share of the error-correction budget it consumes, and the app warns before you spend it all. It also checks the things that quietly break readers: insufficient contrast between foreground and background, and inverted polarity (light modules on a dark field), which a number of older scanners will not handle.
 
-Nothing leaves the browser. There is no backend, no upload, and no persistence — your data and your logo never touch a network.
+Nothing leaves the browser. There is no backend and no upload — your data and your logo never touch a network. Work is kept in local storage so a closed tab does not lose it, and that stays on your machine.
 
 ## Demo
 
@@ -30,6 +30,8 @@ Layout mode, placing a finished code on a business card with a wave background. 
 
 ## Features
 
+- Six ready-made styles, each setting the code and the piece together, and each verified to raise no scan warnings
+- Work is kept in the browser as you go, with named designs to come back to
 - Live preview, debounced at 300ms
 - Text or URL input of any length the format supports
 - Foreground and background colour, via swatch or hex entry

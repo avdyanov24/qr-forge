@@ -49,6 +49,19 @@ import { ScanRisk } from "./components/ScanRisk";
 import { TemplatePreview } from "./components/TemplatePreview";
 import { StressTest } from "./components/StressTest";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { PresetGrid } from "./components/PresetGrid";
+import { SavedDesigns } from "./components/SavedDesigns";
+import { applyPresetToCode, applyPresetToPiece, type Preset } from "./lib/presets";
+import {
+  clearWorkspace,
+  deleteDesign,
+  loadDesigns,
+  loadWorkspace,
+  saveDesign,
+  saveWorkspace,
+  storageAvailable,
+  type SavedDesign,
+} from "./lib/storage";
 import { runStressTest, stressTestSupported, type StressReport } from "./lib/stress";
 import { ZOOM_FIT, ZoomControl } from "./components/ZoomControl";
 
@@ -56,18 +69,25 @@ const DEBOUNCE_MS = 300;
 
 type Mode = "Code" | "Layout";
 
+// Read once, before first render, so the interface never paints the defaults
+// and then jump to the restored design.
+const restored = loadWorkspace();
+
 export default function App() {
-  const [config, setConfig] = useState<QrConfig>(DEFAULT_CONFIG);
-  const [draft, setDraft] = useState(DEFAULT_CONFIG.data);
+  const [config, setConfig] = useState<QrConfig>(restored?.config ?? DEFAULT_CONFIG);
+  const [draft, setDraft] = useState(restored?.config.data ?? DEFAULT_CONFIG.data);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<FileExtension | null>(null);
-  const [mode, setMode] = useState<Mode>("Code");
-  const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
+  const [mode, setMode] = useState<Mode>(restored?.mode ?? "Code");
+  const [layout, setLayout] = useState<LayoutConfig>(restored?.layout ?? DEFAULT_LAYOUT);
+  const [designs, setDesigns] = useState<SavedDesign[]>(() => loadDesigns());
+  const [storageNotice, setStorageNotice] = useState<string | null>(null);
+  const [presetId, setPresetId] = useState<string | null>(null);
   const [moduleCount, setModuleCount] = useState<number | null>(null);
   const [encodeError, setEncodeError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(ZOOM_FIT);
   // Kept out of config on purpose — see SIZE_DEFAULT in lib/qr.
-  const [size, setSize] = useState(SIZE_DEFAULT);
+  const [size, setSize] = useState(restored?.size ?? SIZE_DEFAULT);
   const [stress, setStress] = useState<StressReport | null>(null);
   const [stressRunning, setStressRunning] = useState(false);
 
@@ -76,6 +96,56 @@ export default function App() {
   useEffect(() => {
     setStress(null);
   }, [config]);
+
+  // Keep the working state, debounced so dragging a slider does not write on
+  // every step. A failure here is reported rather than swallowed: silently
+  // losing work is the one thing this is supposed to prevent.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const result = saveWorkspace({ config, layout, size, mode });
+      setStorageNotice(result.ok ? null : result.reason);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [config, layout, size, mode]);
+
+  function usePreset(preset: Preset) {
+    // Functional updates, so a preset applied within the text debounce cannot
+    // rebuild from a snapshot that predates the pending text.
+    setConfig((current) => applyPresetToCode(preset, current));
+    setLayout((current) => applyPresetToPiece(preset, current));
+    setPresetId(preset.id);
+  }
+
+  function storeDesign(name: string) {
+    const { result, designs: next } = saveDesign(name, { config, layout, size, mode }, designs);
+    setDesigns(next);
+    setStorageNotice(result.ok ? null : result.reason);
+  }
+
+  function restoreDesign(design: SavedDesign) {
+    setConfig(design.config);
+    setDraft(design.config.data);
+    setLayout(design.layout);
+    setSize(design.size);
+    setMode(design.mode);
+    setPresetId(null);
+  }
+
+  function removeDesign(design: SavedDesign) {
+    const { result, designs: next } = deleteDesign(design.id, designs);
+    setDesigns(next);
+    setStorageNotice(result.ok ? null : result.reason);
+  }
+
+  function resetAll() {
+    clearWorkspace();
+    setConfig(DEFAULT_CONFIG);
+    setDraft(DEFAULT_CONFIG.data);
+    setLayout(DEFAULT_LAYOUT);
+    setSize(SIZE_DEFAULT);
+    setPresetId(null);
+    setStorageNotice(null);
+  }
 
   async function runStress() {
     setStressRunning(true);
@@ -197,6 +267,10 @@ export default function App() {
         {mode === "Layout" && (
           <LayoutPanel layout={layout} onChange={setLayoutValue} onError={setNotice} />
         )}
+
+        <Section title="Style">
+          <PresetGrid activeId={presetId} onApply={usePreset} />
+        </Section>
 
         {mode === "Code" && (
           <>
@@ -428,6 +502,20 @@ export default function App() {
             </div>
           </Section>
         )}
+
+        <Section title="Saved work">
+          <SavedDesigns
+            designs={designs}
+            supported={storageAvailable}
+            notice={storageNotice}
+            onSave={storeDesign}
+            onRestore={restoreDesign}
+            onDelete={removeDesign}
+          />
+          <button type="button" className="btn" onClick={resetAll}>
+            Reset to defaults
+          </button>
+        </Section>
 
         <div className="grow" />
       </aside>
