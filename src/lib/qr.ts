@@ -82,6 +82,14 @@ const MARGIN_SPEC_FLOOR = 0.06;
 
 export const ECC_LEVELS: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
 
+/** Plain-language note on each level, shown under the control. */
+export const ECC_GUIDE: Record<ErrorCorrectionLevel, { recovers: string; use: string }> = {
+  L: { recovers: "7%", use: "screens and clean conditions" },
+  M: { recovers: "15%", use: "general purpose" },
+  Q: { recovers: "25%", use: "print, or anything with a logo" },
+  H: { recovers: "30%", use: "harsh conditions, stickers, labels" },
+};
+
 /**
  * Exported file size. Deliberately not part of QrConfig: it only affects the
  * exported file, since the preview renders at a fixed internal size, so

@@ -121,6 +121,26 @@ export function Segmented<T extends string>({
   );
 }
 
+/**
+ * Collapsed explanation. Native <details> so it opens on Enter and Space and
+ * announces its state without any of that being written here. Closed by
+ * default — the rail should stay quiet until someone asks a question.
+ */
+export function Disclosure({ summary, children }: { summary: string; children: ReactNode }) {
+  return (
+    <details className="group border-t border-edge pt-4">
+      <summary className="label flex cursor-pointer list-none items-center justify-between hover:text-bone [&::-webkit-details-marker]:hidden">
+        {summary}
+        <span aria-hidden className="font-mono text-[12px] leading-none">
+          <span className="group-open:hidden">+</span>
+          <span className="hidden group-open:inline">−</span>
+        </span>
+      </summary>
+      <div className="mt-4 flex flex-col gap-3 text-[12px] leading-[1.65] text-ash">{children}</div>
+    </details>
+  );
+}
+
 export function Slider({
   label,
   value,

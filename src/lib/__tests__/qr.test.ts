@@ -5,6 +5,8 @@ import {
   contrastRatio,
   DEFAULT_CONFIG,
   describeEncodeError,
+  ECC_GUIDE,
+  ECC_LEVELS,
   filename,
   logoCoverage,
   type QrConfig,
@@ -281,5 +283,33 @@ describe("filename", () => {
   it("truncates a very long payload", () => {
     const name = filename("https://example.com/" + "a".repeat(200), "png");
     expect(name.length).toBeLessThanOrEqual(3 + 32 + 4);
+  });
+});
+
+describe("ECC_GUIDE", () => {
+  it("describes every level the control offers", () => {
+    // A missing entry renders as "undefined" in the rail rather than failing.
+    for (const level of ECC_LEVELS) {
+      expect(ECC_GUIDE[level]).toBeDefined();
+      expect(ECC_GUIDE[level].recovers).toMatch(/^\d+%$/);
+      expect(ECC_GUIDE[level].use.length).toBeGreaterThan(5);
+    }
+  });
+
+  it("quotes recovery rising with the level", () => {
+    const percents = ECC_LEVELS.map((l) => Number.parseInt(ECC_GUIDE[l].recovers, 10));
+    for (let i = 1; i < percents.length; i++) {
+      expect(percents[i]).toBeGreaterThan(percents[i - 1]);
+    }
+  });
+
+  it("matches the budget the risk model actually uses", () => {
+    // The rail must not promise a number the warnings contradict.
+    const coverage = (level: (typeof ECC_LEVELS)[number]) =>
+      logoCoverage(config({ logo: "data:,", logoScale: 1, ecc: level })).moduleShare;
+    for (const level of ECC_LEVELS) {
+      const quoted = Number.parseInt(ECC_GUIDE[level].recovers, 10) / 100;
+      expect(coverage(level)).toBeCloseTo(quoted, 2);
+    }
   });
 });

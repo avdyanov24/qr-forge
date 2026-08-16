@@ -5,6 +5,7 @@ import {
   CORNER_STYLES,
   DEFAULT_CONFIG,
   DOT_STYLES,
+  ECC_GUIDE,
   ECC_LEVELS,
   exportCode,
   GRADIENT_TYPES,
@@ -32,7 +33,15 @@ import {
 } from "./lib/templates";
 import QRCodeStyling from "qr-code-styling";
 import { buildOptions, downloadBlob } from "./lib/qr";
-import { ColorField, LogoField, Section, Segmented, Select, Slider } from "./components/Controls";
+import {
+  ColorField,
+  Disclosure,
+  LogoField,
+  Section,
+  Segmented,
+  Select,
+  Slider,
+} from "./components/Controls";
 import { ExportActions } from "./components/ExportActions";
 import { LayoutPanel } from "./components/LayoutPanel";
 import { Preview } from "./components/Preview";
@@ -308,6 +317,40 @@ export default function App() {
                 options={ECC_LEVELS}
                 onChange={(value) => set("ecc", value)}
               />
+              <p className="-mt-2 text-[12px] leading-[1.6] text-ash">
+                Level {config.ecc} rebuilds the code after losing{" "}
+                <span className="text-bone">{ECC_GUIDE[config.ecc].recovers}</span> of it — for{" "}
+                {ECC_GUIDE[config.ecc].use}.
+              </p>
+
+              <Disclosure summary="What that means">
+                <p>
+                  A QR code carries more than your text. The extra is computed from it, so a reader
+                  that recovers enough of the pattern can rebuild the parts it could not see. It is
+                  not a spare copy — it is closer to solving for a missing number.
+                </p>
+                <p>
+                  Damage is spread on purpose. The data is cut into blocks and interleaved across
+                  the grid, so a thumb over one corner takes a small bite out of many blocks rather
+                  than destroying one outright. That is why a scuffed code still scans.
+                </p>
+                <p>
+                  <span className="text-bone">
+                    The three corner squares are not covered by any of this.
+                  </span>{" "}
+                  A reader uses them to find the code before decoding starts. Wash them out and the
+                  code is not recovered with difficulty — it is never found at all.
+                </p>
+                <p>
+                  Raising the level is not free. It leaves less room for your text, so the same
+                  content needs a denser grid, and at a fixed printed size every module gets
+                  physically smaller. On a small piece with a long link, H can scan worse than M.
+                </p>
+                <p>
+                  Shortening the text helps twice — bigger modules and more headroom. Raising the
+                  level helps once and costs you module size.
+                </p>
+              </Disclosure>
               <LogoField
                 logo={config.logo}
                 onChange={(logo) => set("logo", logo)}
