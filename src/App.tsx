@@ -12,6 +12,7 @@ import {
   MARGIN_MIN,
   MARGIN_STEP,
   SHAPES,
+  SIZE_DEFAULT,
   SIZE_MAX,
   SIZE_MIN,
   SIZE_STEP,
@@ -51,6 +52,8 @@ export default function App() {
   const [moduleCount, setModuleCount] = useState<number | null>(null);
   const [encodeError, setEncodeError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(ZOOM_FIT);
+  // Kept out of config on purpose — see SIZE_DEFAULT in lib/qr.
+  const [size, setSize] = useState(SIZE_DEFAULT);
 
   // Live preview, debounced 300ms. Every other control applies immediately.
   useEffect(() => {
@@ -79,7 +82,7 @@ export default function App() {
   // Nothing is exportable while the encoder is rejecting the input.
   const ready = config.data.trim() !== "" && encodeError === null;
 
-  const codeReadout = `${config.size} × ${config.size} · ECC ${config.ecc} · ${new TextEncoder().encode(config.data).length} bytes`;
+  const codeReadout = `${size} × ${size} · ECC ${config.ecc} · ${new TextEncoder().encode(config.data).length} bytes`;
 
   const template = templateById(layout.template);
   // Width the preview settles at before zoom is applied.
@@ -113,7 +116,7 @@ export default function App() {
       // timeout rather than requestAnimationFrame, which never fires while the
       // tab is hidden and would strand the export mid-flight.
       await new Promise((resolve) => setTimeout(resolve, 0));
-      await exportCode(config, extension);
+      await exportCode(config, size, extension);
     } catch {
       setNotice("Export failed. Try a smaller size.");
     } finally {
@@ -295,12 +298,12 @@ export default function App() {
             <Section title="Output">
               <Slider
                 label="Size"
-                value={config.size}
+                value={size}
                 min={SIZE_MIN}
                 max={SIZE_MAX}
                 step={SIZE_STEP}
-                display={`${config.size} px`}
-                onChange={(value) => set("size", value)}
+                display={`${size} px`}
+                onChange={setSize}
               />
               {/* Below lg these live in the docked bar instead. */}
               <div className="mt-1 hidden lg:block">

@@ -81,6 +81,13 @@ export const ECC_LEVELS: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
 export const SIZE_MIN = 256;
 export const SIZE_MAX = 2048;
 export const SIZE_STEP = 64;
+export const SIZE_DEFAULT = 1024;
+
+/**
+ * Output size is deliberately not part of QrConfig. It only affects the
+ * exported file — the preview renders at a fixed internal size — so keeping
+ * it out means dragging the size slider cannot invalidate the render.
+ */
 
 /** Size the preview renders at. Output size is independent of this. */
 export const PREVIEW_SIZE = 640;
@@ -100,7 +107,6 @@ export interface QrConfig {
   /** Quiet zone around the code, as a fraction of its width. */
   margin: number;
   ecc: ErrorCorrectionLevel;
-  size: number;
   logo: string | null;
   /** Share of the error-correction budget the logo is allowed to consume. */
   logoScale: number;
@@ -118,7 +124,6 @@ export const DEFAULT_CONFIG: QrConfig = {
   shape: "square",
   margin: 0.1,
   ecc: "Q",
-  size: 1024,
   logo: null,
   logoScale: 0.4,
 };
@@ -371,8 +376,12 @@ export function downloadBlob(blob: Blob, name: string): void {
   URL.revokeObjectURL(url);
 }
 
-export async function exportCode(config: QrConfig, extension: FileExtension): Promise<void> {
-  const instance = new QRCodeStyling(buildOptions(config, config.size));
+export async function exportCode(
+  config: QrConfig,
+  size: number,
+  extension: FileExtension,
+): Promise<void> {
+  const instance = new QRCodeStyling(buildOptions(config, size));
   const blob = (await instance.getRawData(extension)) as Blob | null;
   if (!blob) throw new Error("Could not render the code for export.");
 
