@@ -12,11 +12,16 @@ Node 20.19+ or 22.12+. There is no backend and no environment configuration requ
 ## Before you open a PR
 
 ```bash
+npm run lint
+npm run format:check
 npm run typecheck
+npm test
 npm run build
 ```
 
-Both must pass. CI runs the same two commands, so a green local run is a good predictor.
+All five must pass. CI runs exactly these, in this order, so a green local run is a good predictor. `npm run format` fixes formatting in place.
+
+Linting is [oxlint](https://oxc.rs), with the React, TypeScript, import, jsx-a11y and Vitest plugins on. `react-hooks/rules-of-hooks` and `react-hooks/exhaustive-deps` are errors — the stale-closure bugs they catch are the kind this codebase is prone to, since the previews are effects driving an imperative renderer.
 
 ## Commits
 
@@ -32,7 +37,7 @@ chore:    tooling, dependencies, config
 ci:       workflow changes
 ```
 
-One logical change per commit. Explain *why* in the body when the change is not self-evident — the diff already covers the what. Reference issues where relevant (`closes #4`).
+One logical change per commit. Explain _why_ in the body when the change is not self-evident — the diff already covers the what. Reference issues where relevant (`closes #4`).
 
 ## Branches and review
 

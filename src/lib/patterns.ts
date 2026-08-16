@@ -8,14 +8,7 @@
  */
 
 export type PatternId =
-  | "none"
-  | "waves"
-  | "stripes"
-  | "dots"
-  | "grid"
-  | "gradient"
-  | "arc"
-  | "image";
+  "none" | "waves" | "stripes" | "dots" | "grid" | "gradient" | "arc" | "image";
 
 export const PATTERNS: { value: PatternId; label: string }[] = [
   { value: "none", label: "None" },
@@ -47,7 +40,7 @@ function waves(ctx: CanvasRenderingContext2D, w: number, h: number, scale: numbe
     ctx.moveTo(0, h);
     ctx.lineTo(0, top);
     for (let x = 0; x <= w; x += 2) {
-      ctx.lineTo(x, top + Math.sin((x + phase) / wavelength * Math.PI * 2) * amplitude);
+      ctx.lineTo(x, top + Math.sin(((x + phase) / wavelength) * Math.PI * 2) * amplitude);
     }
     ctx.lineTo(w, h);
     ctx.closePath();

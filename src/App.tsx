@@ -147,174 +147,172 @@ export default function App() {
         )}
 
         {mode === "Code" && (
-        <>
-        <Section title="Content">
-          <textarea
-            className="field resize-none"
-            rows={3}
-            spellCheck={false}
-            placeholder="https://"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            aria-label="Text or URL"
-          />
-        </Section>
+          <>
+            <Section title="Content">
+              <textarea
+                className="field resize-none"
+                rows={3}
+                spellCheck={false}
+                placeholder="https://"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                aria-label="Text or URL"
+              />
+            </Section>
 
-        <Section title="Colour">
-          <ColorField
-            label="Foreground"
-            value={config.foreground}
-            onChange={(value) => set("foreground", value)}
-          />
-
-          <Select
-            label="Gradient"
-            value={config.gradient?.type ?? "none"}
-            options={GRADIENT_TYPES}
-            onChange={(value) =>
-              set(
-                "gradient",
-                value === "none"
-                  ? null
-                  : {
-                      type: value as GradientType,
-                      color: config.gradient?.color ?? "#C8A24A",
-                      rotation: config.gradient?.rotation ?? 45,
-                    },
-              )
-            }
-          />
-
-          {config.gradient && (
-            <>
+            <Section title="Colour">
               <ColorField
-                label="Gradient end"
-                value={config.gradient.color}
+                label="Foreground"
+                value={config.foreground}
+                onChange={(value) => set("foreground", value)}
+              />
+
+              <Select
+                label="Gradient"
+                value={config.gradient?.type ?? "none"}
+                options={GRADIENT_TYPES}
                 onChange={(value) =>
-                  set("gradient", { ...config.gradient!, color: value })
+                  set(
+                    "gradient",
+                    value === "none"
+                      ? null
+                      : {
+                          type: value as GradientType,
+                          color: config.gradient?.color ?? "#C8A24A",
+                          rotation: config.gradient?.rotation ?? 45,
+                        },
+                  )
                 }
               />
-              {config.gradient.type === "linear" && (
-                <Slider
-                  label="Angle"
-                  value={config.gradient.rotation}
-                  min={0}
-                  max={360}
-                  step={15}
-                  display={`${config.gradient.rotation}°`}
-                  onChange={(value) =>
-                    set("gradient", { ...config.gradient!, rotation: value })
-                  }
+
+              {config.gradient && (
+                <>
+                  <ColorField
+                    label="Gradient end"
+                    value={config.gradient.color}
+                    onChange={(value) => set("gradient", { ...config.gradient!, color: value })}
+                  />
+                  {config.gradient.type === "linear" && (
+                    <Slider
+                      label="Angle"
+                      value={config.gradient.rotation}
+                      min={0}
+                      max={360}
+                      step={15}
+                      display={`${config.gradient.rotation}°`}
+                      onChange={(value) =>
+                        set("gradient", { ...config.gradient!, rotation: value })
+                      }
+                    />
+                  )}
+                </>
+              )}
+
+              <ColorField
+                label="Background"
+                value={config.background}
+                onChange={(value) => set("background", value)}
+              />
+
+              <Segmented
+                label="Corner colour"
+                value={config.cornerColor ? "Custom" : "Match"}
+                options={["Match", "Custom"]}
+                onChange={(value) =>
+                  set("cornerColor", value === "Custom" ? config.foreground : null)
+                }
+              />
+              {config.cornerColor && (
+                <ColorField
+                  label="Corners"
+                  value={config.cornerColor}
+                  onChange={(value) => set("cornerColor", value)}
                 />
               )}
-            </>
-          )}
+            </Section>
 
-          <ColorField
-            label="Background"
-            value={config.background}
-            onChange={(value) => set("background", value)}
-          />
+            <Section title="Form">
+              <Select
+                label="Dot style"
+                value={config.dotStyle}
+                options={DOT_STYLES}
+                onChange={(value) => set("dotStyle", value)}
+              />
+              <Select
+                label="Corner style"
+                value={config.cornerStyle}
+                options={CORNER_STYLES}
+                onChange={(value) => set("cornerStyle", value)}
+              />
+              <Select
+                label="Corner centre"
+                value={config.cornerDotStyle}
+                options={CORNER_DOT_STYLES}
+                onChange={(value) => set("cornerDotStyle", value)}
+              />
+              <Select
+                label="Frame"
+                value={config.shape}
+                options={SHAPES}
+                onChange={(value) => set("shape", value)}
+              />
+              <Slider
+                label="Quiet zone"
+                value={config.margin}
+                min={MARGIN_MIN}
+                max={MARGIN_MAX}
+                step={MARGIN_STEP}
+                display={`${Math.round(config.margin * 100)}%`}
+                onChange={(value) => set("margin", value)}
+              />
+            </Section>
 
-          <Segmented
-            label="Corner colour"
-            value={config.cornerColor ? "Custom" : "Match"}
-            options={["Match", "Custom"]}
-            onChange={(value) =>
-              set("cornerColor", value === "Custom" ? config.foreground : null)
-            }
-          />
-          {config.cornerColor && (
-            <ColorField
-              label="Corners"
-              value={config.cornerColor}
-              onChange={(value) => set("cornerColor", value)}
-            />
-          )}
-        </Section>
+            <Section title="Encoding">
+              <Segmented
+                label="Error correction"
+                value={config.ecc}
+                options={ECC_LEVELS}
+                onChange={(value) => set("ecc", value)}
+              />
+              <LogoField
+                logo={config.logo}
+                onChange={(logo) => set("logo", logo)}
+                onError={setNotice}
+              />
+              {config.logo && (
+                <Slider
+                  label="Logo size"
+                  value={config.logoScale}
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  display={`${Math.round(config.logoScale * 100)}% of ECC`}
+                  onChange={(value) => set("logoScale", value)}
+                />
+              )}
+            </Section>
 
-        <Section title="Form">
-          <Select
-            label="Dot style"
-            value={config.dotStyle}
-            options={DOT_STYLES}
-            onChange={(value) => set("dotStyle", value)}
-          />
-          <Select
-            label="Corner style"
-            value={config.cornerStyle}
-            options={CORNER_STYLES}
-            onChange={(value) => set("cornerStyle", value)}
-          />
-          <Select
-            label="Corner centre"
-            value={config.cornerDotStyle}
-            options={CORNER_DOT_STYLES}
-            onChange={(value) => set("cornerDotStyle", value)}
-          />
-          <Select
-            label="Frame"
-            value={config.shape}
-            options={SHAPES}
-            onChange={(value) => set("shape", value)}
-          />
-          <Slider
-            label="Quiet zone"
-            value={config.margin}
-            min={MARGIN_MIN}
-            max={MARGIN_MAX}
-            step={MARGIN_STEP}
-            display={`${Math.round(config.margin * 100)}%`}
-            onChange={(value) => set("margin", value)}
-          />
-        </Section>
-
-        <Section title="Encoding">
-          <Segmented
-            label="Error correction"
-            value={config.ecc}
-            options={ECC_LEVELS}
-            onChange={(value) => set("ecc", value)}
-          />
-          <LogoField
-            logo={config.logo}
-            onChange={(logo) => set("logo", logo)}
-            onError={setNotice}
-          />
-          {config.logo && (
-            <Slider
-              label="Logo size"
-              value={config.logoScale}
-              min={0.1}
-              max={1}
-              step={0.05}
-              display={`${Math.round(config.logoScale * 100)}% of ECC`}
-              onChange={(value) => set("logoScale", value)}
-            />
-          )}
-        </Section>
-
-        <Section title="Output">
-          <Slider
-            label="Size"
-            value={config.size}
-            min={SIZE_MIN}
-            max={SIZE_MAX}
-            step={SIZE_STEP}
-            display={`${config.size} px`}
-            onChange={(value) => set("size", value)}
-          />
-          {/* Below lg these live in the docked bar instead. */}
-          <div className="mt-1 hidden lg:block">
-            <ExportActions
-              ready={ready}
-              pending={pending}
-              notice={notice}
-              onExport={download}
-            />
-          </div>
-        </Section>
-        </>
+            <Section title="Output">
+              <Slider
+                label="Size"
+                value={config.size}
+                min={SIZE_MIN}
+                max={SIZE_MAX}
+                step={SIZE_STEP}
+                display={`${config.size} px`}
+                onChange={(value) => set("size", value)}
+              />
+              {/* Below lg these live in the docked bar instead. */}
+              <div className="mt-1 hidden lg:block">
+                <ExportActions
+                  ready={ready}
+                  pending={pending}
+                  notice={notice}
+                  onExport={download}
+                />
+              </div>
+            </Section>
+          </>
         )}
 
         {mode === "Layout" && (

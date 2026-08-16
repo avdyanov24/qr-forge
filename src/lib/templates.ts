@@ -190,11 +190,11 @@ export function wrap(
   // final line running past the trim edge. Without this the copy is silently
   // shortened and reads as if it all landed.
   if (dropped || overflows) {
-    let text = lines[last];
-    while (text.length > 1 && ctx.measureText(`${text}…`).width > maxWidth) {
-      text = text.slice(0, -1);
+    let tail = lines[last];
+    while (tail.length > 1 && ctx.measureText(`${tail}…`).width > maxWidth) {
+      tail = tail.slice(0, -1);
     }
-    lines[last] = `${text}…`;
+    lines[last] = `${tail}…`;
   }
   return lines;
 }
@@ -228,8 +228,10 @@ function roundedPath(
 async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load the image."));
+    image.addEventListener("load", () => resolve(image), { once: true });
+    image.addEventListener("error", () => reject(new Error("Could not load the image.")), {
+      once: true,
+    });
     image.src = src;
   });
 }
@@ -290,7 +292,11 @@ export async function renderTemplate(
   const qrImage = await createImageBitmap(qrBlob);
 
   // The module count comes from the encoder that just ran, so it reflects the
-  // data and level actually used rather than an estimate.
+  // data and level actually used rather than an estimate. The library exposes
+  // no public accessor for it, and the alternative is reimplementing the
+  // version capacity tables, so this reaches for the private field and falls
+  // back to null — the print warning is skipped rather than guessed at.
+  // oxlint-disable-next-line no-underscore-dangle
   const encoder = (instance as unknown as { _qr?: { getModuleCount(): number } })._qr;
   const moduleCount = encoder ? encoder.getModuleCount() : null;
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "unicorn", "oxc", "jsx-a11y", "import", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "error",
+    "no-console": ["error", { "allow": ["error", "warn"] }],
+    "eqeqeq": "error",
+
+    // Stylesheets are imported for their side effect; there is nothing to bind.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+
+    // The automatic JSX runtime is in use, so React is never referenced by
+    // name and this legacy rule does not apply.
+    "react/react-in-jsx-scope": "off"
+  },
+  "ignorePatterns": ["dist", "node_modules"]
+}

@@ -47,13 +47,13 @@ _Screenshot pending._
 
 Places a finished code on a printable piece and exports it as PNG at 300 dpi, with the pixel dimensions a printer expects.
 
-| Piece | Trim | Export |
-| --- | --- | --- |
-| Bookmark | 50 × 150 mm | 591 × 1772 px |
-| Business card | 85 × 55 mm | 1004 × 650 px |
-| Sticker | 60 × 60 mm | 709 × 709 px |
-| Flyer A6 | 105 × 148 mm | 1240 × 1748 px |
-| Poster A5 | 148 × 210 mm | 1748 × 2480 px |
+| Piece         | Trim         | Export         |
+| ------------- | ------------ | -------------- |
+| Bookmark      | 50 × 150 mm  | 591 × 1772 px  |
+| Business card | 85 × 55 mm   | 1004 × 650 px  |
+| Sticker       | 60 × 60 mm   | 709 × 709 px   |
+| Flyer A6      | 105 × 148 mm | 1240 × 1748 px |
+| Poster A5     | 148 × 210 mm | 1748 × 2480 px |
 
 Each piece takes:
 
@@ -76,7 +76,7 @@ This is the part worth knowing, because it is not how most tools present it.
 maxHiddenDots = imageSize × eccPercent × modules²
 ```
 
-where `eccPercent` is `{ L: 0.07, M: 0.15, Q: 0.25, H: 0.30 }`. So `imageSize` is the share of the *recovery budget* the logo consumes, and a logo can never mathematically exceed what the level can recover — at level L it is simply drawn smaller.
+where `eccPercent` is `{ L: 0.07, M: 0.15, Q: 0.25, H: 0.30 }`. So `imageSize` is the share of the _recovery budget_ the logo consumes, and a logo can never mathematically exceed what the level can recover — at level L it is simply drawn smaller.
 
 The real failure mode is therefore margin, not overflow. A logo that spends the entire budget still decodes from a clean render, but leaves nothing for glare, ink spread, or a creased label. The app warns above 60% of the budget and flags 85% as having no margin left. The quiet zone around the logo insets the drawn image inside the already-blanked area, so it costs no additional modules.
 
@@ -84,7 +84,7 @@ The real failure mode is therefore margin, not overflow. A logo that spends the 
 
 No. The code is not a link to anything — your text is physically encoded in the pattern, so scanning it is decoding, not a lookup. There is no server, no account, and no record anywhere that could be switched off. The format is a frozen standard (ISO/IEC 18004), so readers will keep reading it.
 
-This matters more than it sounds. Many free generators produce *dynamic* codes that encode the vendor's own short domain and redirect to your URL. Those genuinely do die — the trial lapses, the company folds, the domain expires — and every code you printed breaks at once. A code from here has no middleman in it, including this project. If this repository disappeared, every code you have already exported would keep working.
+This matters more than it sounds. Many free generators produce _dynamic_ codes that encode the vendor's own short domain and redirect to your URL. Those genuinely do die — the trial lapses, the company folds, the domain expires — and every code you printed breaks at once. A code from here has no middleman in it, including this project. If this repository disappeared, every code you have already exported would keep working.
 
 What can still break is the **destination**. A code encoding `https://yoursite.com/promo` will deliver that URL faithfully forever, including long after the page 404s. For anything printed or long-lived, encode a URL on a domain you control and redirect from there, so you can change where it goes without reprinting. Plain text, phone numbers and WiFi credentials have nothing external to rot.
 
@@ -92,14 +92,14 @@ The other real failure mode is physical wear — fading, scuffs, creases, glare.
 
 ## Tech stack
 
-| Concern    | Choice                          |
-| ---------- | ------------------------------- |
-| UI         | React 19                        |
-| Build      | Vite 8                          |
-| Language   | TypeScript (strict)             |
-| Styling    | Tailwind CSS 4 (CSS-first)      |
-| QR render  | qr-code-styling 1.9             |
-| Typefaces  | Inter, JetBrains Mono           |
+| Concern   | Choice                     |
+| --------- | -------------------------- |
+| UI        | React 19                   |
+| Build     | Vite 8                     |
+| Language  | TypeScript (strict)        |
+| Styling   | Tailwind CSS 4 (CSS-first) |
+| QR render | qr-code-styling 1.9        |
+| Typefaces | Inter, JetBrains Mono      |
 
 ## Local setup
 
@@ -116,9 +116,13 @@ npm run dev
 The dev server prints a local URL. Other scripts:
 
 ```bash
-npm run build      # typecheck and produce dist/
-npm run typecheck  # types only
-npm run preview    # serve the built output
+npm run build         # typecheck and produce dist/
+npm run typecheck     # types only
+npm test              # unit tests
+npm run lint          # oxlint
+npm run format        # prettier, in place
+npm run format:check  # prettier, report only
+npm run preview       # serve the built output
 ```
 
 ## Deployment

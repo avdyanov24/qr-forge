@@ -274,9 +274,13 @@ export function analyzeRisk(config: QrConfig): RiskFinding[] {
     ...(config.cornerColor ? [{ label: "Corner colour", color: config.cornerColor }] : []),
   ];
 
-  const weakest = inks
-    .map((ink) => ({ ...ink, ratio: contrastRatio(ink.color, config.background) }))
-    .reduce((worst, ink) => (ink.ratio < worst.ratio ? ink : worst));
+  const weakest = inks.reduce(
+    (worst, ink) => {
+      const ratio = contrastRatio(ink.color, config.background);
+      return ratio < worst.ratio ? { label: ink.label, ratio } : worst;
+    },
+    { label: "", ratio: Number.POSITIVE_INFINITY },
+  );
 
   if (weakest.ratio < 3) {
     // Severity depends on which region goes faint. A flat foreground takes the

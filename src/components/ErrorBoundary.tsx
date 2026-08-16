@@ -6,10 +6,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
  * failure that gets past the local guards should still leave something on
  * screen to read and a way out.
  */
-export class ErrorBoundary extends Component<
-  { children: ReactNode },
-  { error: Error | null }
-> {
+export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state: { error: Error | null } = { error: null };
 
   static getDerivedStateFromError(error: Error) {

@@ -153,11 +153,17 @@ export function ColorField({
   return (
     <Field label={label}>
       <div className="flex items-stretch gap-2">
+        {/*
+          Two controls edit the same colour, so they are named apart — a
+          screen reader announcing "Foreground" twice gives no way to tell the
+          swatch from the hex field.
+        */}
         <label
           htmlFor={id}
           className="relative w-[38px] shrink-0 cursor-pointer border border-edge rounded-[2px] hover:border-ash"
           style={{ backgroundColor: HEX.test(value) ? value : "transparent" }}
         >
+          <span className="sr-only">{label} colour picker</span>
           <input
             id={id}
             type="color"
@@ -175,7 +181,7 @@ export function ColorField({
             const next = event.target.value.trim();
             onChange(next.startsWith("#") || next === "" ? next : `#${next}`);
           }}
-          aria-label={label}
+          aria-label={`${label} hex value`}
         />
       </div>
     </Field>
@@ -206,11 +212,15 @@ export function LogoField({
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      onError(null);
-      onChange(typeof reader.result === "string" ? reader.result : null);
-    };
-    reader.onerror = () => onError("Could not read that file.");
+    reader.addEventListener(
+      "load",
+      () => {
+        onError(null);
+        onChange(typeof reader.result === "string" ? reader.result : null);
+      },
+      { once: true },
+    );
+    reader.addEventListener("error", () => onError("Could not read that file."), { once: true });
     reader.readAsDataURL(file);
   }
 

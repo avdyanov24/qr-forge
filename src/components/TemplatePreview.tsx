@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { describeEncodeError, type QrConfig } from "../lib/qr";
-import {
-  PREVIEW_DPI,
-  renderTemplate,
-  templateById,
-  type LayoutConfig,
-} from "../lib/templates";
+import { PREVIEW_DPI, renderTemplate, templateById, type LayoutConfig } from "../lib/templates";
 
 export function TemplatePreview({
   config,
