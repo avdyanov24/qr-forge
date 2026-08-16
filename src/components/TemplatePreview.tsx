@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { describeEncodeError, type QrConfig } from "../lib/qr";
 import {
   PREVIEW_DPI,
@@ -20,8 +20,19 @@ export function TemplatePreview({
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Held so the displayed object URL is only released once its replacement is
+  // on screen. Revoking on cleanup pulls it out from under the <img> that is
+  // still showing it, which survives only because the frame is already decoded.
+  const shown = useRef<string | null>(null);
   const template = templateById(layout.template);
   const empty = config.data.trim() === "";
+
+  useEffect(
+    () => () => {
+      if (shown.current) URL.revokeObjectURL(shown.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (empty) {
@@ -32,16 +43,21 @@ export function TemplatePreview({
     }
 
     let cancelled = false;
-    let created: string | null = null;
 
     renderTemplate(config, layout, PREVIEW_DPI)
       .then((result) => {
-        if (cancelled) return;
-        created = URL.createObjectURL(result.blob);
+        const created = URL.createObjectURL(result.blob);
+        if (cancelled) {
+          URL.revokeObjectURL(created);
+          return;
+        }
+        const previous = shown.current;
+        shown.current = created;
         setUrl(created);
         setError(null);
         onEncodeError(null);
         onRender(result.moduleCount);
+        if (previous) URL.revokeObjectURL(previous);
       })
       .catch((thrown) => {
         if (cancelled) return;
@@ -53,7 +69,6 @@ export function TemplatePreview({
 
     return () => {
       cancelled = true;
-      if (created) URL.revokeObjectURL(created);
     };
   }, [config, layout, empty, onRender, onEncodeError]);
 
