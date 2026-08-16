@@ -1,4 +1,8 @@
 import QRCodeStyling from "qr-code-styling";
+// The package entry re-exports its types, so nothing here reaches into the
+// build output. Its runtime exports are a different matter — the declarations
+// advertise constants such as errorCorrectionPercents that the bundle does not
+// actually export — so only types are taken from here.
 import type {
   CornerDotType,
   CornerSquareType,
@@ -8,7 +12,7 @@ import type {
   GradientType,
   Options,
   ShapeType,
-} from "qr-code-styling/lib/types";
+} from "qr-code-styling";
 
 export type {
   CornerDotType,
@@ -78,16 +82,15 @@ const MARGIN_SPEC_FLOOR = 0.06;
 
 export const ECC_LEVELS: ErrorCorrectionLevel[] = ["L", "M", "Q", "H"];
 
+/**
+ * Exported file size. Deliberately not part of QrConfig: it only affects the
+ * exported file, since the preview renders at a fixed internal size, so
+ * keeping it separate means changing it cannot invalidate the render.
+ */
 export const SIZE_MIN = 256;
 export const SIZE_MAX = 2048;
 export const SIZE_STEP = 64;
 export const SIZE_DEFAULT = 1024;
-
-/**
- * Output size is deliberately not part of QrConfig. It only affects the
- * exported file — the preview renders at a fixed internal size — so keeping
- * it out means dragging the size slider cannot invalidate the render.
- */
 
 /** Size the preview renders at. Output size is independent of this. */
 export const PREVIEW_SIZE = 640;
