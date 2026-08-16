@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -138,6 +138,25 @@ export function Slider({
 }
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
+const HEX_SHORT = /^#[0-9a-fA-F]{3}$/;
+
+/**
+ * Six-digit form of a typed colour, or null while it is still incomplete.
+ * Shorthand is expanded here so everything downstream — the swatch, the
+ * renderer and the contrast maths — sees one representation.
+ */
+export function normalizeHex(text: string): string | null {
+  const value = text.trim().toUpperCase();
+  if (HEX.test(value)) return value;
+  if (HEX_SHORT.test(value)) {
+    return `#${value
+      .slice(1)
+      .split("")
+      .map((c) => c + c)
+      .join("")}`;
+  }
+  return null;
+}
 
 export function ColorField({
   label,
@@ -149,6 +168,36 @@ export function ColorField({
   onChange: (value: string) => void;
 }) {
   const id = useId();
+  // The field keeps its own text so a half-typed colour never reaches the
+  // renderer. Only a complete value is published upward, and the last one
+  // published is remembered so an echo of it does not clobber what is being
+  // typed.
+  const [draft, setDraft] = useState(value);
+  const published = useRef(value);
+
+  useEffect(() => {
+    if (value !== published.current) {
+      published.current = value;
+      setDraft(value);
+    }
+  }, [value]);
+
+  function handleText(next: string) {
+    const text = next.trim() === "" || next.startsWith("#") ? next : `#${next}`;
+    setDraft(text);
+    const normalized = normalizeHex(text);
+    if (normalized && normalized !== published.current) {
+      published.current = normalized;
+      onChange(normalized);
+    }
+  }
+
+  function handleSwatch(next: string) {
+    const normalized = next.toUpperCase();
+    published.current = normalized;
+    setDraft(normalized);
+    onChange(normalized);
+  }
 
   return (
     <Field label={label}>
@@ -161,14 +210,14 @@ export function ColorField({
         <label
           htmlFor={id}
           className="relative w-[38px] shrink-0 cursor-pointer border border-edge rounded-[2px] hover:border-ash"
-          style={{ backgroundColor: HEX.test(value) ? value : "transparent" }}
+          style={{ backgroundColor: value }}
         >
           <span className="sr-only">{label} colour picker</span>
           <input
             id={id}
             type="color"
-            value={HEX.test(value) ? value : "#000000"}
-            onChange={(event) => onChange(event.target.value.toUpperCase())}
+            value={value}
+            onChange={(event) => handleSwatch(event.target.value)}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
         </label>
@@ -176,11 +225,8 @@ export function ColorField({
           type="text"
           className="field uppercase"
           spellCheck={false}
-          value={value}
-          onChange={(event) => {
-            const next = event.target.value.trim();
-            onChange(next.startsWith("#") || next === "" ? next : `#${next}`);
-          }}
+          value={draft}
+          onChange={(event) => handleText(event.target.value)}
           aria-label={`${label} hex value`}
         />
       </div>
