@@ -140,27 +140,41 @@ describe("analyzeRisk — contrast by region", () => {
     expect(titles(config({ gradient: null, cornerColor: null }))).toEqual([]);
   });
 
-  // These two greys sit one hex step apart either side of 3:1 against the
-  // default background. They pin the threshold itself, so it cannot drift
-  // without a test failing.
+  // These two greys sit one hex step apart either side of 3:1 against #E8E6E1,
+  // which is passed explicitly so the threshold stays pinned no matter what the
+  // product default background becomes.
   it("accepts a foreground just above 3:1", () => {
     expect(contrastRatio("#838383", "#E8E6E1")).toBeGreaterThan(3);
-    expect(titles(config({ foreground: "#838383" }))).not.toContain("Insufficient contrast");
+    expect(titles(config({ foreground: "#838383", background: "#E8E6E1" }))).not.toContain(
+      "Insufficient contrast",
+    );
   });
 
   it("rejects a foreground just below 3:1", () => {
     expect(contrastRatio("#848484", "#E8E6E1")).toBeLessThan(3);
-    expect(titles(config({ foreground: "#848484" }))).toContain("Insufficient contrast");
+    expect(titles(config({ foreground: "#848484", background: "#E8E6E1" }))).toContain(
+      "Insufficient contrast",
+    );
   });
 
   it("pins the same threshold for the finder patterns", () => {
-    expect(titles(config({ cornerColor: "#838383" }))).not.toContain("Finder patterns too faint");
-    expect(titles(config({ cornerColor: "#848484" }))).toContain("Finder patterns too faint");
+    expect(titles(config({ cornerColor: "#838383", background: "#E8E6E1" }))).not.toContain(
+      "Finder patterns too faint",
+    );
+    expect(titles(config({ cornerColor: "#848484", background: "#E8E6E1" }))).toContain(
+      "Finder patterns too faint",
+    );
   });
 
   it("pins the same threshold for the gradient end", () => {
-    const above = config({ gradient: { type: "linear", color: "#838383", rotation: 0 } });
-    const below = config({ gradient: { type: "linear", color: "#848484", rotation: 0 } });
+    const above = config({
+      background: "#E8E6E1",
+      gradient: { type: "linear", color: "#838383", rotation: 0 },
+    });
+    const below = config({
+      background: "#E8E6E1",
+      gradient: { type: "linear", color: "#848484", rotation: 0 },
+    });
     expect(titles(above)).not.toContain("Gradient end is faint");
     expect(titles(below)).toContain("Gradient end is faint");
   });

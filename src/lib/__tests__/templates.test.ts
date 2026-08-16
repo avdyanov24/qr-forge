@@ -9,6 +9,7 @@ import {
   planSheet,
   px,
   qrWidthMm,
+  safeCodeRadiusMm,
   TEMPLATES,
   templateById,
   wrap,
@@ -277,5 +278,63 @@ describe("placementRect", () => {
     const [, topY] = placementRect("top", 100, 200);
     const [, bottomY] = placementRect("bottom", 100, 200);
     expect(bottomY).toBeGreaterThan(topY);
+  });
+});
+
+describe("safeCodeRadiusMm", () => {
+  it("scales with the quiet zone, which is the only thing rounding can eat", () => {
+    const narrow = safeCodeRadiusMm(config({ margin: 0.05 }), layout());
+    const wide = safeCodeRadiusMm(config({ margin: 0.15 }), layout());
+    expect(wide).toBeCloseTo(narrow * 3, 5);
+  });
+
+  it("is zero when there is no quiet zone at all", () => {
+    expect(safeCodeRadiusMm(config({ margin: 0 }), layout())).toBe(0);
+  });
+
+  it("scales with the code's printed width", () => {
+    const small = safeCodeRadiusMm(config(), layout({ qrScale: 0.5 }));
+    const large = safeCodeRadiusMm(config(), layout({ qrScale: 1.5 }));
+    expect(large).toBeCloseTo(small * 3, 5);
+  });
+
+  it("allows a radius far larger than the quiet zone itself", () => {
+    // The corner only bites along the diagonal, so the limit is ~3.41× the
+    // quiet zone, not 1×. Being wrong here would forbid harmless rounding.
+    const quietZoneMm = qrWidthMm(layout(), templateById("bookmark")) * DEFAULT_CONFIG.margin;
+    expect(safeCodeRadiusMm(config(), layout())).toBeGreaterThan(quietZoneMm * 3);
+  });
+});
+
+describe("analyzePrintRisk — rounded code corners", () => {
+  const titles = (over: Partial<LayoutConfig>, cfg = config()) =>
+    analyzePrintRisk(cfg, layout(over), 25).map((f) => f.title);
+
+  it("says nothing when the code is not rounded", () => {
+    expect(titles({ qrRadiusMm: 0 })).not.toContain("Rounding is cutting into the code");
+  });
+
+  it("says nothing while the rounding stays inside the quiet zone", () => {
+    const safe = safeCodeRadiusMm(config(), layout());
+    expect(titles({ qrRadiusMm: safe - 0.5 })).not.toContain("Rounding is cutting into the code");
+  });
+
+  it("warns once the rounding reaches the modules", () => {
+    const safe = safeCodeRadiusMm(config(), layout());
+    expect(titles({ qrRadiusMm: safe + 0.5 })).toContain("Rounding is cutting into the code");
+  });
+
+  it("warns about any rounding when there is no quiet zone", () => {
+    expect(titles({ qrRadiusMm: 0.5 }, config({ margin: 0 }))).toContain(
+      "Rounding is cutting into the code",
+    );
+  });
+
+  it("treats it as critical, since a clipped corner is a finder pattern", () => {
+    const safe = safeCodeRadiusMm(config(), layout());
+    const finding = analyzePrintRisk(config(), layout({ qrRadiusMm: safe + 2 }), 25).find(
+      (f) => f.title === "Rounding is cutting into the code",
+    );
+    expect(finding?.level).toBe("critical");
   });
 });

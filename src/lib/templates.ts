@@ -101,6 +101,8 @@ export interface LayoutConfig {
   align: Align;
   /** Multiplies the template's own code width. */
   qrScale: number;
+  /** Rounds the code's own tile on the piece, in mm. */
+  qrRadiusMm: number;
   pattern: PatternId;
   patternPlacement: PatternPlacement;
   patternColor: string;
@@ -122,13 +124,14 @@ export interface LayoutConfig {
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
   template: "bookmark",
-  background: "#E8E6E1",
+  background: "#FFFFFF",
   ink: "#08080A",
   headline: "Scan me",
   sub: "example.com",
   composition: "qr-top",
   align: "center",
   qrScale: 1,
+  qrRadiusMm: 0,
   pattern: "none",
   patternPlacement: "full",
   patternColor: "#C8A24A",
@@ -349,6 +352,22 @@ export async function renderTemplate(
   ctx.textBaseline = "top";
   ctx.fillStyle = layout.ink;
 
+  // The code's own tile, optionally rounded. Rounding eats into the quiet zone
+  // before it reaches any modules, which is why analyzePrintRisk checks the
+  // radius against the quiet zone rather than against the tile.
+  const codeRadius = px(layout.qrRadiusMm, dpi);
+  const drawCode = (x: number, y: number) => {
+    if (codeRadius <= 0) {
+      ctx.drawImage(qrImage, x, y, qrPx, qrPx);
+      return;
+    }
+    ctx.save();
+    roundedPath(ctx, x, y, qrPx, qrPx, codeRadius);
+    ctx.clip();
+    ctx.drawImage(qrImage, x, y, qrPx, qrPx);
+    ctx.restore();
+  };
+
   const horizontal = layout.composition === "qr-left" || layout.composition === "qr-right";
 
   // Anchor for aligned text and images within a column.
@@ -410,7 +429,7 @@ export async function renderTemplate(
       y += logoH + gap;
     }
     if (codeFirst) {
-      ctx.drawImage(qrImage, placeX(left, width, qrPx), y, qrPx, qrPx);
+      drawCode(placeX(left, width, qrPx), y);
       y += qrPx;
       if (textH) drawText(left, width, y + gap * 1.2);
     } else {
@@ -418,7 +437,7 @@ export async function renderTemplate(
         drawText(left, width, y);
         y += textH + gap * 1.2;
       }
-      ctx.drawImage(qrImage, placeX(left, width, qrPx), y, qrPx, qrPx);
+      drawCode(placeX(left, width, qrPx), y);
     }
   } else {
     const codeLeft = layout.composition === "qr-left";
@@ -427,7 +446,7 @@ export async function renderTemplate(
     const qrX = codeLeft ? pad : widthPx - pad - qrPx;
     const textLeft = codeLeft ? pad + qrPx + columnGap : pad;
 
-    ctx.drawImage(qrImage, qrX, Math.round((heightPx - qrPx) / 2), qrPx, qrPx);
+    drawCode(qrX, Math.round((heightPx - qrPx) / 2));
 
     const textH = textHeight(textLeft, textWidth);
     const logoBlock = logoImage ? logoH + gap : 0;
@@ -612,6 +631,25 @@ export function moduleSizeMm(
   return (widthMm * (1 - 2 * config.margin)) / moduleCount;
 }
 
+/**
+ * Largest corner radius the code's tile can take before the rounding reaches
+ * the modules, in mm.
+ *
+ * The quiet zone is the only thing between the tile's corner and the code. A
+ * rounded corner of radius r cuts deepest along the diagonal, where the code's
+ * nearest point sits at (m, m) from the corner. That point survives while
+ * √2·(r − m) ≤ r, which rearranges to r ≤ m·√2/(√2 − 1) — about 3.41 times the
+ * quiet zone. Past that the rounding starts taking modules, and on a corner
+ * that means a finder pattern.
+ */
+const DIAGONAL_REACH = Math.SQRT2 / (Math.SQRT2 - 1);
+
+export function safeCodeRadiusMm(config: QrConfig, layout: LayoutConfig): number {
+  const template = templateById(layout.template);
+  const quietZoneMm = qrWidthMm(layout, template) * config.margin;
+  return quietZoneMm * DIAGONAL_REACH;
+}
+
 export function analyzePrintRisk(
   config: QrConfig,
   layout: LayoutConfig,
@@ -634,6 +672,20 @@ export function analyzePrintRisk(
         level: "marginal",
         title: "Modules near the print limit",
         detail: `Each module lands at ${mm} mm. That reads on a good camera in good light, but leaves nothing for ink spread, cheap paper, or an awkward angle. Around 0.5 mm is a comfortable floor.`,
+      });
+    }
+  }
+
+  if (layout.qrRadiusMm > 0) {
+    const safe = safeCodeRadiusMm(config, layout);
+    if (layout.qrRadiusMm > safe) {
+      findings.push({
+        level: "critical",
+        title: "Rounding is cutting into the code",
+        detail:
+          safe > 0
+            ? `Past ${safe.toFixed(1)} mm the rounding reaches beyond the quiet zone and starts clipping the finder patterns. A clean screen scan may still read a little over that, but those three squares carry no error correction — there is nothing to recover from once they go, and it fails outright rather than degrading. Reduce the rounding or widen the quiet zone.`
+            : "There is no quiet zone for the rounding to eat into, so any rounding at all removes modules from the corners. Widen the quiet zone first.",
       });
     }
   }

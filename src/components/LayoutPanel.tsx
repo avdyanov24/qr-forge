@@ -115,6 +115,15 @@ export function LayoutPanel({
           display={`${qrWidthMm(layout, template).toFixed(0)} mm`}
           onChange={(value) => onChange("qrScale", value)}
         />
+        <Slider
+          label="Code corners"
+          value={layout.qrRadiusMm}
+          min={0}
+          max={16}
+          step={0.5}
+          display={`${layout.qrRadiusMm} mm`}
+          onChange={(value) => onChange("qrRadiusMm", value)}
+        />
       </Section>
 
       <Section title="Copy">
