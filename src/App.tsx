@@ -171,7 +171,15 @@ export default function App() {
         preview first — it is the object, the rail only describes it. Above
         lg the rail is a fixed 280px column that scrolls on its own.
       */}
-      <aside className="order-2 flex w-full shrink-0 flex-col border-t border-edge lg:order-1 lg:w-[280px] lg:overflow-y-auto lg:border-t-0 lg:border-r">
+      {/*
+        `relative` is load-bearing. Visually hidden labels use position:
+        absolute, and an absolutely positioned element is only clipped by an
+        ancestor's overflow if that ancestor is its containing block. Without
+        this the hidden radio inputs escape the rail and sit at their static
+        position in page coordinates, stretching the document and letting the
+        whole page scroll past the interface.
+      */}
+      <aside className="relative order-2 flex w-full shrink-0 flex-col border-t border-edge lg:order-1 lg:w-[280px] lg:overflow-y-auto lg:border-t-0 lg:border-r">
         <header className="px-6 pb-7 pt-8">
           <h1 className="text-[15px] leading-none tracking-[-0.02em] text-bone">QR Generator</h1>
           <p className="label mt-3">Client side only</p>
@@ -424,7 +432,8 @@ export default function App() {
       </aside>
 
       {/* Preview field. */}
-      <main className="grid-field order-1 flex grow flex-col lg:order-2 lg:overflow-y-auto">
+      {/* Same reasoning as the rail: it scrolls, so it must contain its own absolutes. */}
+      <main className="grid-field relative order-1 flex grow flex-col lg:order-2 lg:overflow-y-auto">
         {/*
           The zoomed piece can exceed the field, so this scrolls. Width is the
           fitted size multiplied by the zoom factor, which keeps the SVG and
