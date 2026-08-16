@@ -29,13 +29,16 @@ import {
   templateById,
   type LayoutConfig,
 } from "./lib/templates";
-import { downloadBlob } from "./lib/qr";
+import QRCodeStyling from "qr-code-styling";
+import { buildOptions, downloadBlob } from "./lib/qr";
 import { ColorField, LogoField, Section, Segmented, Select, Slider } from "./components/Controls";
 import { ExportActions } from "./components/ExportActions";
 import { LayoutPanel } from "./components/LayoutPanel";
 import { Preview } from "./components/Preview";
 import { ScanRisk } from "./components/ScanRisk";
 import { TemplatePreview } from "./components/TemplatePreview";
+import { StressTest } from "./components/StressTest";
+import { runStressTest, stressTestSupported, type StressReport } from "./lib/stress";
 import { ZOOM_FIT, ZoomControl } from "./components/ZoomControl";
 
 const DEBOUNCE_MS = 300;
@@ -54,6 +57,29 @@ export default function App() {
   const [zoom, setZoom] = useState(ZOOM_FIT);
   // Kept out of config on purpose — see SIZE_DEFAULT in lib/qr.
   const [size, setSize] = useState(SIZE_DEFAULT);
+  const [stress, setStress] = useState<StressReport | null>(null);
+  const [stressRunning, setStressRunning] = useState(false);
+
+  // The report describes one specific design, so it is dropped the moment the
+  // design changes rather than left on screen claiming to still be true.
+  useEffect(() => {
+    setStress(null);
+  }, [config]);
+
+  async function runStress() {
+    setStressRunning(true);
+    try {
+      const instance = new QRCodeStyling(buildOptions(config, 600));
+      const blob = (await instance.getRawData("png")) as Blob | null;
+      if (!blob) throw new Error("Could not render the code.");
+      const bitmap = await createImageBitmap(blob);
+      setStress(await runStressTest(bitmap, config.data));
+    } catch {
+      setNotice("Could not run the stress test.");
+    } finally {
+      setStressRunning(false);
+    }
+  }
 
   // Live preview, debounced 300ms. Every other control applies immediately.
   useEffect(() => {
@@ -293,6 +319,16 @@ export default function App() {
                   onChange={(value) => set("logoScale", value)}
                 />
               )}
+            </Section>
+
+            <Section title="Proof">
+              <StressTest
+                report={stress}
+                running={stressRunning}
+                supported={stressTestSupported()}
+                disabled={!ready}
+                onRun={runStress}
+              />
             </Section>
 
             <Section title="Output">
