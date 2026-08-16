@@ -67,7 +67,7 @@ Each piece takes:
 
 - **Background patterns** — waves, contours, stripes, hexagons, dots, halftone, scatter, grid, gradient, arc, or an uploaded image, with their own colour, scale, strength and placement. Every pattern is drawn on the canvas rather than stored as a bitmap, so it stays sharp at print resolution. Placement can hold a pattern to one band, keeping it clear of the code.
 - **Arrangement** — code above, below, left or right of the text; left, centre or right alignment; a code size in millimetres; and rounded corners on the code's own tile, checked against the quiet zone so the rounding cannot quietly clip a finder pattern.
-- **Copy and marks** — headline, supporting line, and an uploaded logo for the piece itself.
+- **Copy and marks** — headline, supporting line, an independent size for each (0.6× to 2× the template's own), and an uploaded logo for the piece itself.
 - **Finish** — corner radius (the area outside it exports transparent, where a die cut would fall) and an optional keyline.
 - **Production** — 3 mm bleed with crop marks, and an A4 imposition sheet that tiles the piece with cut guides running to the paper edge. A business card comes out 2 × 4, eight to a page.
 

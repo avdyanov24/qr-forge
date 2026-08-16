@@ -97,6 +97,10 @@ export interface LayoutConfig {
   ink: string;
   headline: string;
   sub: string;
+  /** Multiplies the template's own headline size. */
+  headlineScale: number;
+  /** Multiplies the template's own supporting-line size. */
+  subScale: number;
   composition: Composition;
   align: Align;
   /** Multiplies the template's own code width. */
@@ -128,6 +132,8 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   ink: "#08080A",
   headline: "Scan me",
   sub: "example.com",
+  headlineScale: 1,
+  subScale: 1,
   composition: "qr-top",
   align: "center",
   qrScale: 1,
@@ -154,6 +160,14 @@ export function templateById(id: TemplateId): Template {
 /** Code width in mm after the size control is applied. */
 export function qrWidthMm(layout: LayoutConfig, template: Template): number {
   return template.qrMm * layout.qrScale;
+}
+
+export function headlineSizeMm(layout: LayoutConfig, template: Template): number {
+  return template.headlineMm * layout.headlineScale;
+}
+
+export function subSizeMm(layout: LayoutConfig, template: Template): number {
+  return template.subMm * layout.subScale;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -338,8 +352,10 @@ export async function renderTemplate(
   await document.fonts.ready;
 
   const pad = px(template.padMm, dpi);
-  const headlineSize = px(template.headlineMm, dpi);
-  const subSize = px(template.subMm, dpi);
+  const headlineSize = px(headlineSizeMm(layout, template), dpi);
+  const subSize = px(subSizeMm(layout, template), dpi);
+  // The gap between blocks is tied to the headline's own size so it scales
+  // with the text rather than staying fixed while the type grows around it.
   const gap = Math.round(headlineSize * 0.55);
 
   const headlineFont = `600 ${headlineSize}px "Inter Variable", system-ui, sans-serif`;

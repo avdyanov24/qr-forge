@@ -5,11 +5,13 @@ import {
   analyzePrintRisk,
   DEFAULT_LAYOUT,
   EXPORT_DPI,
+  headlineSizeMm,
   moduleSizeMm,
   planSheet,
   px,
   qrWidthMm,
   safeCodeRadiusMm,
+  subSizeMm,
   TEMPLATES,
   templateById,
   wrap,
@@ -76,6 +78,26 @@ describe("qrWidthMm", () => {
   it("scales proportionally", () => {
     const template = templateById("card");
     expect(qrWidthMm(layout({ qrScale: 0.5 }), template)).toBe(template.qrMm * 0.5);
+  });
+});
+
+describe("headlineSizeMm and subSizeMm", () => {
+  it("return the template's own sizes at scale 1", () => {
+    const template = templateById("card");
+    expect(headlineSizeMm(layout({ headlineScale: 1 }), template)).toBe(template.headlineMm);
+    expect(subSizeMm(layout({ subScale: 1 }), template)).toBe(template.subMm);
+  });
+
+  it("scale proportionally and independently of each other", () => {
+    const template = templateById("card");
+    expect(headlineSizeMm(layout({ headlineScale: 1.5, subScale: 1 }), template)).toBeCloseTo(
+      template.headlineMm * 1.5,
+      6,
+    );
+    expect(subSizeMm(layout({ headlineScale: 1, subScale: 0.7 }), template)).toBeCloseTo(
+      template.subMm * 0.7,
+      6,
+    );
   });
 });
 

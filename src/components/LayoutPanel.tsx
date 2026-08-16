@@ -4,9 +4,11 @@ import {
   ALIGNMENTS,
   COMPOSITIONS,
   EXPORT_DPI,
+  headlineSizeMm,
   planSheet,
   px,
   qrWidthMm,
+  subSizeMm,
   TEMPLATES,
   templateById,
   type Align,
@@ -137,6 +139,15 @@ export function LayoutPanel({
             aria-label="Headline"
           />
         </Field>
+        <Slider
+          label="Headline size"
+          value={layout.headlineScale}
+          min={0.6}
+          max={2}
+          step={0.05}
+          display={`${headlineSizeMm(layout, template).toFixed(1)} mm`}
+          onChange={(value) => onChange("headlineScale", value)}
+        />
         <Field label="Supporting line">
           <input
             className="field"
@@ -147,6 +158,15 @@ export function LayoutPanel({
             aria-label="Supporting line"
           />
         </Field>
+        <Slider
+          label="Supporting line size"
+          value={layout.subScale}
+          min={0.6}
+          max={2}
+          step={0.05}
+          display={`${subSizeMm(layout, template).toFixed(1)} mm`}
+          onChange={(value) => onChange("subScale", value)}
+        />
         <LogoField
           label="Piece logo"
           logo={layout.logo}
