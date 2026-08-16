@@ -20,9 +20,13 @@ Nothing leaves the browser. There is no backend, no upload, and no persistence â
 
 ## Demo
 
-<!-- TODO: replace with a screenshot or GIF of the generator (see #11) -->
+[**Try it â†’**](https://avdyanov24.github.io/qr-forge/)
 
-_Screenshot pending._
+![The generator at a desktop width: the control rail on the left, the rendered code centred on a grid field, and the status readout along the bottom](docs/screenshot.png)
+
+Layout mode, placing a finished code on a business card with a wave background. The readout gives the trim size, the export resolution and the physical module size:
+
+![Layout mode showing a business card with a wave background and the millimetres-per-module readout](docs/screenshot-layout.png)
 
 ## Features
 
