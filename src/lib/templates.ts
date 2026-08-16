@@ -147,8 +147,12 @@ export function qrWidthMm(layout: LayoutConfig, template: Template): number {
 /* Render                                                                 */
 /* ---------------------------------------------------------------------- */
 
-function wrap(
-  ctx: CanvasRenderingContext2D,
+/**
+ * Exported for tests. Only depends on the context for `measureText`, so it
+ * can be exercised with a stub instead of a real canvas.
+ */
+export function wrap(
+  ctx: Pick<CanvasRenderingContext2D, "measureText">,
   text: string,
   maxWidth: number,
   maxLines: number,
@@ -158,28 +162,39 @@ function wrap(
 
   const lines: string[] = [];
   let line = "";
+  let dropped = false;
 
   for (const word of words) {
     const candidate = line ? `${line} ${word}` : word;
+    // A single word wider than the column still has to go somewhere.
     if (ctx.measureText(candidate).width <= maxWidth || !line) {
       line = candidate;
-    } else {
-      lines.push(line);
-      line = word;
-      if (lines.length === maxLines) break;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+    if (lines.length === maxLines) {
+      // This word and everything after it has nowhere to go.
+      dropped = true;
+      line = "";
+      break;
     }
   }
-  if (lines.length < maxLines && line) lines.push(line);
+  if (line) lines.push(line);
+  if (lines.length === 0) return lines;
 
-  // Trim the last line rather than letting it run past the trim edge.
-  if (lines.length === maxLines) {
-    let last = lines[maxLines - 1];
-    if (ctx.measureText(last).width > maxWidth) {
-      while (last.length > 1 && ctx.measureText(`${last}…`).width > maxWidth) {
-        last = last.slice(0, -1);
-      }
-      lines[maxLines - 1] = `${last}…`;
+  const last = lines.length - 1;
+  const overflows = ctx.measureText(lines[last]).width > maxWidth;
+
+  // Mark the cut whenever text was lost — either words that never fit, or a
+  // final line running past the trim edge. Without this the copy is silently
+  // shortened and reads as if it all landed.
+  if (dropped || overflows) {
+    let text = lines[last];
+    while (text.length > 1 && ctx.measureText(`${text}…`).width > maxWidth) {
+      text = text.slice(0, -1);
     }
+    lines[last] = `${text}…`;
   }
   return lines;
 }
