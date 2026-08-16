@@ -45,7 +45,24 @@ _Screenshot pending._
 
 ### Layout mode
 
-Places a finished code on a printable piece — bookmark (50 × 150 mm), business card (85 × 55 mm) or A6 flyer (105 × 148 mm). Each takes a card colour, an ink colour, a headline and a supporting line, and exports as PNG at 300 dpi with the pixel dimensions a printer expects.
+Places a finished code on a printable piece and exports it as PNG at 300 dpi, with the pixel dimensions a printer expects.
+
+| Piece | Trim | Export |
+| --- | --- | --- |
+| Bookmark | 50 × 150 mm | 591 × 1772 px |
+| Business card | 85 × 55 mm | 1004 × 650 px |
+| Sticker | 60 × 60 mm | 709 × 709 px |
+| Flyer A6 | 105 × 148 mm | 1240 × 1748 px |
+| Poster A5 | 148 × 210 mm | 1748 × 2480 px |
+
+Each piece takes:
+
+- **Background patterns** — waves, stripes, dots, grid, gradient, arc, or an uploaded image, with their own colour, scale and strength. Every pattern is drawn on the canvas rather than stored as a bitmap, so it stays sharp at print resolution.
+- **Arrangement** — code above, below, left or right of the text; left, centre or right alignment; and a code size in millimetres.
+- **Copy and marks** — headline, supporting line, and an uploaded logo for the piece itself.
+- **Finish** — corner radius (the area outside it exports transparent, where a die cut would fall) and an optional keyline.
+
+The code is drawn as an opaque image carrying its own background, so it always punches a clean rectangle through whatever is behind it. That is what keeps the quiet zone intact over a busy pattern.
 
 Knowing the physical size buys a warning the pixel view cannot give you: **module size in millimetres**. A phone camera stops resolving modules below roughly 0.4 mm no matter how much error correction the code carries, and ink spread closes the gap further. The same code that sits at 1.09 mm on a bookmark drops to 0.21 mm once the URL grows and the piece shrinks to a business card — which is the failure that reaches the printer before anyone notices. Layout mode measures it from the module count the encoder actually produced and says so.
 
@@ -124,6 +141,7 @@ qr-forge/
 │   │   └── ScanRisk.tsx    # annunciator panel for risk findings
 │   ├── lib/
 │   │   ├── qr.ts           # options builder, risk model, export
+│   │   ├── patterns.ts     # canvas-drawn background patterns
 │   │   └── templates.ts    # print sizes, canvas render, print-risk model
 │   ├── App.tsx             # layout and state
 │   ├── index.css           # design tokens and component styles
