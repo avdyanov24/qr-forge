@@ -86,6 +86,45 @@ It discriminates rather than rubber-stamping. A short URL at level H reads under
 
 Needs `BarcodeDetector`, which Chrome and Edge have; elsewhere the panel says so instead of guessing.
 
+## Error correction, and what it costs
+
+The setting the whole app revolves around, and the one most tools ask you to pick without explaining.
+
+### It is not a backup copy
+
+A QR code carries more than your text. The extra is **computed from** your data using Reed–Solomon coding, so a reader that recovers enough of the pattern can reconstruct the parts it could not see — closer to solving for a missing number than to keeping a spare.
+
+One consequence surprises people: a damaged QR code is not partly readable. It either decodes completely or not at all. There is no degraded mode.
+
+### The four levels
+
+| Level | Recovers | Suits                              |
+| ----- | -------- | ---------------------------------- |
+| L     | ~7%      | Screens, clean conditions          |
+| M     | ~15%     | General purpose                    |
+| Q     | ~25%     | Print, or anything with a logo     |
+| H     | ~30%     | Harsh conditions, stickers, labels |
+
+That figure is the share of the code that can be lost and still decode.
+
+### Why a scuff in one place survives
+
+The data is not laid out in order. It is split into blocks, each block gets its own correction data, and the whole lot is **interleaved** across the grid.
+
+So a thumb over one corner does not wipe out one block — it takes a small bite out of many, and each stays inside its own budget. Damage is deliberately smeared across the redundancy instead of concentrating in one place. This is exactly the condition the stress test flips on when you drop from H to L.
+
+### What is not protected
+
+The **three corner squares** carry no error correction at all. A reader uses them to locate the code before decoding begins. Wash them out and the code is not recovered with difficulty, it is never found — which is why this app ranks faint finder patterns as critical while a faint gradient end is only a caution. The quiet zone is in the same category: structural, not data.
+
+### The cost nobody mentions
+
+Raising the level is **not free**. More correction data means less room for your text, so the same content needs a bigger grid. At a fixed printed size, more modules means **every module is physically smaller**.
+
+Crank a long URL to H on a business card and you have traded "survives a scratch" for "too fine for a phone to resolve" — it can genuinely scan worse than M. That trade is what the app's two measurements pull apart: **mm-per-module** catches modules too fine to resolve, and the **stress test** catches too little recovery.
+
+The rule of thumb: **shortening the text helps twice** — bigger modules and more headroom. Raising the level helps once, and costs you module size.
+
 ## How the logo budget works
 
 This is the part worth knowing, because it is not how most tools present it.
