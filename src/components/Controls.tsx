@@ -79,28 +79,44 @@ export function Segmented<T extends string>({
   options: T[];
   onChange: (value: T) => void;
 }) {
+  const name = useId();
+
+  /*
+    Native radios rather than buttons with ARIA. They are one tab stop, move
+    on the arrow keys and announce as a group with a chosen value, all without
+    a key handler of our own. The input carries the behaviour and the label
+    carries the appearance.
+  */
   return (
     <Field label={label}>
-      <div className="flex border border-edge rounded-[2px] panel">
+      <fieldset className="flex border border-edge rounded-[2px] panel">
+        <legend className="sr-only">{label}</legend>
         {options.map((option, index) => {
           const active = option === value;
           return (
-            <button
+            <label
               key={option}
-              type="button"
-              onClick={() => onChange(option)}
-              aria-pressed={active}
               className={[
-                "flex-1 h-[34px] font-mono text-[12px] cursor-pointer",
+                "flex h-[34px] flex-1 cursor-pointer items-center justify-center font-mono text-[12px]",
                 index > 0 ? "border-l border-edge" : "",
                 active ? "bg-edge text-bone" : "text-ash hover:text-bone",
+                // Focus is one of the two places the accent is allowed.
+                "has-[:focus-visible]:text-signal",
               ].join(" ")}
             >
+              <input
+                type="radio"
+                name={name}
+                value={option}
+                checked={active}
+                onChange={() => onChange(option)}
+                className="sr-only"
+              />
               {option}
-            </button>
+            </label>
           );
         })}
-      </div>
+      </fieldset>
     </Field>
   );
 }
