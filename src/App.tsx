@@ -35,6 +35,7 @@ import { LayoutPanel } from "./components/LayoutPanel";
 import { Preview } from "./components/Preview";
 import { ScanRisk } from "./components/ScanRisk";
 import { TemplatePreview } from "./components/TemplatePreview";
+import { ZOOM_FIT, ZoomControl } from "./components/ZoomControl";
 
 const DEBOUNCE_MS = 300;
 
@@ -48,6 +49,8 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("Code");
   const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
   const [moduleCount, setModuleCount] = useState<number | null>(null);
+  const [encodeError, setEncodeError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(ZOOM_FIT);
 
   // Live preview, debounced 300ms. Every other control applies immediately.
   useEffect(() => {
@@ -73,11 +76,14 @@ export default function App() {
     [mode, config, layout, moduleCount],
   );
   const findings = [...printFindings, ...codeFindings];
-  const ready = config.data.trim() !== "";
+  // Nothing is exportable while the encoder is rejecting the input.
+  const ready = config.data.trim() !== "" && encodeError === null;
 
   const codeReadout = `${config.size} × ${config.size} · ECC ${config.ecc} · ${new TextEncoder().encode(config.data).length} bytes`;
 
   const template = templateById(layout.template);
+  // Width the preview settles at before zoom is applied.
+  const fitWidth = mode === "Layout" ? template.widthMm * 4 : 540;
   const module = moduleSizeMm(config, template, moduleCount);
   const layoutReadout = `${template.widthMm} × ${template.heightMm} mm · ${EXPORT_DPI} dpi${
     module ? ` · ${module.toFixed(2)} mm per module` : ""
@@ -334,12 +340,27 @@ export default function App() {
 
       {/* Preview field. */}
       <main className="grid-field order-1 flex grow flex-col lg:order-2 lg:overflow-y-auto">
-        <div className="flex grow items-center justify-center p-5 sm:p-10 lg:p-16">
-          {mode === "Layout" ? (
-            <TemplatePreview config={config} layout={layout} onRender={setModuleCount} />
-          ) : (
-            <Preview config={config} />
-          )}
+        {/*
+          The zoomed piece can exceed the field, so this scrolls. Width is the
+          fitted size multiplied by the zoom factor, which keeps the SVG and
+          the rendered layout sharp instead of scaling a bitmap.
+        */}
+        <div className="flex grow overflow-auto p-5 sm:p-10 lg:p-16">
+          <div
+            className="m-auto shrink-0"
+            style={{ width: `calc(min(100%, ${fitWidth}px) * ${zoom})` }}
+          >
+            {mode === "Layout" ? (
+              <TemplatePreview
+                config={config}
+                layout={layout}
+                onRender={setModuleCount}
+                onEncodeError={setEncodeError}
+              />
+            ) : (
+              <Preview config={config} onEncodeError={setEncodeError} />
+            )}
+          </div>
         </div>
 
         {findings.length > 0 && (
@@ -350,10 +371,11 @@ export default function App() {
           </div>
         )}
 
-        <footer className="shrink-0 border-t border-edge px-6 py-4">
+        <footer className="flex shrink-0 items-center justify-between gap-4 border-t border-edge px-6 py-3">
           <p className="font-mono text-[11px] leading-none text-ash tabular-nums">
             {mode === "Layout" ? layoutReadout : codeReadout}
           </p>
+          <ZoomControl zoom={zoom} onChange={setZoom} />
         </footer>
       </main>
 

@@ -40,6 +40,7 @@ _Screenshot pending._
 - Output size from 256px to 2048px
 - Export to PNG, SVG, JPEG or WebP at the selected size
 - Scan-risk analysis: recovery-budget exhaustion, faint ink, faint finder patterns, inverted polarity, undersized quiet zone
+- Zoom from 50% to 400% on the preview, in either mode, with the field scrolling under it
 - Responsive: the rail and preview stack on narrow screens, with export controls docked
 
 ### Layout mode
