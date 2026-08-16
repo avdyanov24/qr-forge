@@ -186,10 +186,12 @@ export function LogoField({
   logo,
   onChange,
   onError,
+  label = "Logo",
 }: {
   logo: string | null;
   onChange: (logo: string | null) => void;
   onError: (message: string | null) => void;
+  label?: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
 
@@ -213,7 +215,7 @@ export function LogoField({
   }
 
   return (
-    <Field label="Logo">
+    <Field label={label}>
       <div className="flex items-stretch gap-2">
         {logo && (
           <div

@@ -84,7 +84,7 @@ export default function App() {
   const template = templateById(layout.template);
   // Width the preview settles at before zoom is applied.
   const fitWidth = mode === "Layout" ? template.widthMm * 4 : 540;
-  const module = moduleSizeMm(config, template, moduleCount);
+  const module = moduleSizeMm(config, template, moduleCount, layout);
   const layoutReadout = `${template.widthMm} × ${template.heightMm} mm · ${EXPORT_DPI} dpi${
     module ? ` · ${module.toFixed(2)} mm per module` : ""
   }`;
@@ -143,7 +143,7 @@ export default function App() {
         </header>
 
         {mode === "Layout" && (
-          <LayoutPanel layout={layout} onChange={setLayoutValue} />
+          <LayoutPanel layout={layout} onChange={setLayoutValue} onError={setNotice} />
         )}
 
         {mode === "Code" && (

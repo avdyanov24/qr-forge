@@ -1,14 +1,29 @@
-import { ColorField, Field, Section, Select } from "./Controls";
-import { EXPORT_DPI, px, TEMPLATES, templateById, type LayoutConfig } from "../lib/templates";
+import { ColorField, Field, LogoField, Section, Segmented, Select, Slider } from "./Controls";
+import { PATTERNS } from "../lib/patterns";
+import {
+  ALIGNMENTS,
+  COMPOSITIONS,
+  EXPORT_DPI,
+  px,
+  qrWidthMm,
+  TEMPLATES,
+  templateById,
+  type Align,
+  type LayoutConfig,
+} from "../lib/templates";
 
 export function LayoutPanel({
   layout,
   onChange,
+  onError,
 }: {
   layout: LayoutConfig;
   onChange: <K extends keyof LayoutConfig>(key: K, value: LayoutConfig[K]) => void;
+  onError: (message: string | null) => void;
 }) {
   const template = templateById(layout.template);
+  const usesImage = layout.pattern === "image";
+  const patterned = layout.pattern !== "none";
 
   return (
     <>
@@ -19,11 +34,53 @@ export function LayoutPanel({
           options={TEMPLATES.map((t) => ({ value: t.id, label: t.label }))}
           onChange={(value) => onChange("template", value)}
         />
-        <Field label="Output" value={`${px(template.widthMm, EXPORT_DPI)} × ${px(template.heightMm, EXPORT_DPI)} px`}>
+        <Field
+          label="Output"
+          value={`${px(template.widthMm, EXPORT_DPI)} × ${px(template.heightMm, EXPORT_DPI)} px`}
+        >
           <p className="font-mono text-[11px] leading-[1.5] text-ash">
             {template.widthMm} × {template.heightMm} mm at {EXPORT_DPI} dpi
           </p>
         </Field>
+        <Slider
+          label="Corner radius"
+          value={layout.cornerRadiusMm}
+          min={0}
+          max={12}
+          step={0.5}
+          display={`${layout.cornerRadiusMm} mm`}
+          onChange={(value) => onChange("cornerRadiusMm", value)}
+        />
+        <Segmented
+          label="Keyline"
+          value={layout.keyline ? "On" : "Off"}
+          options={["Off", "On"]}
+          onChange={(value) => onChange("keyline", value === "On")}
+        />
+      </Section>
+
+      <Section title="Arrangement">
+        <Select
+          label="Composition"
+          value={layout.composition}
+          options={COMPOSITIONS}
+          onChange={(value) => onChange("composition", value)}
+        />
+        <Segmented
+          label="Alignment"
+          value={layout.align}
+          options={ALIGNMENTS as Align[]}
+          onChange={(value) => onChange("align", value)}
+        />
+        <Slider
+          label="Code size"
+          value={layout.qrScale}
+          min={0.5}
+          max={1.6}
+          step={0.05}
+          display={`${qrWidthMm(layout, template).toFixed(0)} mm`}
+          onChange={(value) => onChange("qrScale", value)}
+        />
       </Section>
 
       <Section title="Copy">
@@ -47,6 +104,69 @@ export function LayoutPanel({
             aria-label="Supporting line"
           />
         </Field>
+        <LogoField
+          label="Piece logo"
+          logo={layout.logo}
+          onChange={(value) => onChange("logo", value)}
+          onError={onError}
+        />
+        {layout.logo && (
+          <Slider
+            label="Logo width"
+            value={layout.logoScale}
+            min={0.1}
+            max={0.7}
+            step={0.05}
+            display={`${(template.widthMm * layout.logoScale).toFixed(0)} mm`}
+            onChange={(value) => onChange("logoScale", value)}
+          />
+        )}
+      </Section>
+
+      <Section title="Background">
+        <Select
+          label="Pattern"
+          value={layout.pattern}
+          options={PATTERNS}
+          onChange={(value) => onChange("pattern", value)}
+        />
+        {usesImage && (
+          <LogoField
+            label="Image"
+            logo={layout.backgroundImage}
+            onChange={(value) => onChange("backgroundImage", value)}
+            onError={onError}
+          />
+        )}
+        {patterned && !usesImage && (
+          <>
+            <ColorField
+              label="Pattern colour"
+              value={layout.patternColor}
+              onChange={(value) => onChange("patternColor", value)}
+            />
+            <Slider
+              label="Pattern scale"
+              value={layout.patternScale}
+              min={0.4}
+              max={2}
+              step={0.1}
+              display={`${layout.patternScale.toFixed(1)}×`}
+              onChange={(value) => onChange("patternScale", value)}
+            />
+          </>
+        )}
+        {patterned && (
+          <Slider
+            label="Pattern strength"
+            value={layout.patternOpacity}
+            min={0.05}
+            max={1}
+            step={0.05}
+            display={`${Math.round(layout.patternOpacity * 100)}%`}
+            onChange={(value) => onChange("patternOpacity", value)}
+          />
+        )}
       </Section>
 
       <Section title="Colour">
