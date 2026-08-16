@@ -63,6 +63,7 @@ describe("applyPreset", () => {
     template: "poster",
     headline: "Keep this",
     sub: "and this",
+    detail: "and this too",
     logo: "data:image/png;base64,BBBB",
     backgroundImage: "data:image/png;base64,CCCC",
   };
@@ -85,6 +86,7 @@ describe("applyPreset", () => {
       expect(layout.template).toBe("poster");
       expect(layout.headline).toBe("Keep this");
       expect(layout.sub).toBe("and this");
+      expect(layout.detail).toBe("and this too");
       expect(layout.logo).toBe(piece.logo);
       expect(layout.backgroundImage).toBe(piece.backgroundImage);
     }

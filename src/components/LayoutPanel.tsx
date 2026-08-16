@@ -3,8 +3,10 @@ import { PATTERNS, PLACEMENTS } from "../lib/patterns";
 import {
   ALIGNMENTS,
   COMPOSITIONS,
+  detailSizeMm,
   EXPORT_DPI,
   headlineSizeMm,
+  marginMm,
   planSheet,
   px,
   qrWidthMm,
@@ -46,6 +48,15 @@ export function LayoutPanel({
             {template.widthMm} × {template.heightMm} mm at {EXPORT_DPI} dpi
           </p>
         </Field>
+        <Slider
+          label="Margin"
+          value={layout.marginScale}
+          min={0.3}
+          max={2}
+          step={0.05}
+          display={`${marginMm(layout, template).toFixed(1)} mm`}
+          onChange={(value) => onChange("marginScale", value)}
+        />
         <Slider
           label="Corner radius"
           value={layout.cornerRadiusMm}
@@ -167,6 +178,27 @@ export function LayoutPanel({
           display={`${subSizeMm(layout, template).toFixed(1)} mm`}
           onChange={(value) => onChange("subScale", value)}
         />
+        <Field label="Detail line">
+          <input
+            className="field"
+            value={layout.detail}
+            spellCheck={false}
+            placeholder="phone · email · website"
+            onChange={(event) => onChange("detail", event.target.value)}
+            aria-label="Detail line"
+          />
+        </Field>
+        {layout.detail.trim() !== "" && (
+          <Slider
+            label="Detail line size"
+            value={layout.detailScale}
+            min={0.6}
+            max={2}
+            step={0.05}
+            display={`${detailSizeMm(layout, template).toFixed(1)} mm`}
+            onChange={(value) => onChange("detailScale", value)}
+          />
+        )}
         <LogoField
           label="Piece logo"
           logo={layout.logo}

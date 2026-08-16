@@ -1,5 +1,5 @@
 import QRCodeStyling from "qr-code-styling";
-import { buildOptions, type QrConfig, type RiskFinding } from "./qr";
+import { buildOptions, contrastRatio, type QrConfig, type RiskFinding } from "./qr";
 import { drawCover, drawPattern, type PatternId, type PatternPlacement } from "./patterns";
 
 /** Print resolution. Anything less than 300 looks soft on paper. */
@@ -11,7 +11,7 @@ const MM_PER_INCH = 25.4;
 
 export const px = (mm: number, dpi: number) => Math.round((mm / MM_PER_INCH) * dpi);
 
-export type TemplateId = "bookmark" | "card" | "flyer" | "sticker" | "poster";
+export type TemplateId = "bookmark" | "card" | "card-us" | "sticker" | "flyer" | "poster";
 
 export interface Template {
   id: TemplateId;
@@ -21,9 +21,12 @@ export interface Template {
   heightMm: number;
   /** Code width in mm before the size control scales it. */
   qrMm: number;
+  /** Default safe-area inset from the trim, in mm, before the margin control scales it. */
   padMm: number;
   headlineMm: number;
   subMm: number;
+  /** Size of the third text tier — a contact line or tagline — in mm. */
+  detailMm: number;
 }
 
 export const TEMPLATES: Template[] = [
@@ -36,16 +39,32 @@ export const TEMPLATES: Template[] = [
     padMm: 8,
     headlineMm: 5,
     subMm: 3,
+    detailMm: 2.4,
   },
   {
     id: "card",
-    label: "Business card · 85 × 55 mm",
+    label: "Business card (EU) · 85 × 55 mm",
     widthMm: 85,
     heightMm: 55,
     qrMm: 32,
     padMm: 7,
     headlineMm: 4.4,
     subMm: 2.8,
+    detailMm: 2.2,
+  },
+  {
+    // 3.5 × 2 in exactly — the sizes print shops in the US cut to. Kept as
+    // its own entry rather than a variant of "card" so both can sit in the
+    // template list and a saved design keeps whichever one it was built for.
+    id: "card-us",
+    label: "Business card (US) · 89 × 51 mm",
+    widthMm: 88.9,
+    heightMm: 50.8,
+    qrMm: 30,
+    padMm: 7,
+    headlineMm: 4.4,
+    subMm: 2.8,
+    detailMm: 2.2,
   },
   {
     id: "sticker",
@@ -56,6 +75,7 @@ export const TEMPLATES: Template[] = [
     padMm: 7,
     headlineMm: 4.6,
     subMm: 3,
+    detailMm: 2.4,
   },
   {
     id: "flyer",
@@ -66,6 +86,7 @@ export const TEMPLATES: Template[] = [
     padMm: 12,
     headlineMm: 7,
     subMm: 4,
+    detailMm: 3.2,
   },
   {
     id: "poster",
@@ -76,6 +97,7 @@ export const TEMPLATES: Template[] = [
     padMm: 16,
     headlineMm: 9.5,
     subMm: 5,
+    detailMm: 4,
   },
 ];
 
@@ -97,16 +119,24 @@ export interface LayoutConfig {
   ink: string;
   headline: string;
   sub: string;
+  /** Third tier — a contact line or tagline. Empty by default; unlike headline
+   *  and sub it carries no sample copy, so it never appears in a design that
+   *  has not asked for it. */
+  detail: string;
   /** Multiplies the template's own headline size. */
   headlineScale: number;
   /** Multiplies the template's own supporting-line size. */
   subScale: number;
+  /** Multiplies the template's own detail size. */
+  detailScale: number;
   composition: Composition;
   align: Align;
   /** Multiplies the template's own code width. */
   qrScale: number;
   /** Rounds the code's own tile on the piece, in mm. */
   qrRadiusMm: number;
+  /** Multiplies the template's own safe-area inset from the trim. */
+  marginScale: number;
   pattern: PatternId;
   patternPlacement: PatternPlacement;
   patternColor: string;
@@ -132,12 +162,15 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   ink: "#08080A",
   headline: "Scan me",
   sub: "example.com",
+  detail: "",
   headlineScale: 1,
   subScale: 1,
+  detailScale: 1,
   composition: "qr-top",
   align: "center",
   qrScale: 1,
   qrRadiusMm: 0,
+  marginScale: 1,
   pattern: "none",
   patternPlacement: "full",
   patternColor: "#C8A24A",
@@ -168,6 +201,15 @@ export function headlineSizeMm(layout: LayoutConfig, template: Template): number
 
 export function subSizeMm(layout: LayoutConfig, template: Template): number {
   return template.subMm * layout.subScale;
+}
+
+export function detailSizeMm(layout: LayoutConfig, template: Template): number {
+  return template.detailMm * layout.detailScale;
+}
+
+/** Safe-area inset from the trim, in mm, after the margin control is applied. */
+export function marginMm(layout: LayoutConfig, template: Template): number {
+  return template.padMm * layout.marginScale;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -351,15 +393,20 @@ export async function renderTemplate(
   // Canvas silently falls back to a default face if the font is not ready.
   await document.fonts.ready;
 
-  const pad = px(template.padMm, dpi);
+  const pad = px(marginMm(layout, template), dpi);
   const headlineSize = px(headlineSizeMm(layout, template), dpi);
   const subSize = px(subSizeMm(layout, template), dpi);
+  const detailSize = px(detailSizeMm(layout, template), dpi);
   // The gap between blocks is tied to the headline's own size so it scales
   // with the text rather than staying fixed while the type grows around it.
   const gap = Math.round(headlineSize * 0.55);
 
   const headlineFont = `600 ${headlineSize}px "Inter Variable", system-ui, sans-serif`;
   const subFont = `${subSize}px "JetBrains Mono Variable", ui-monospace, monospace`;
+  // Same mono family as the supporting line — a contact block reads as data,
+  // which is the same role JetBrains Mono already plays everywhere else in
+  // the app, in the UI chrome as much as on the piece itself.
+  const detailFont = `${detailSize}px "JetBrains Mono Variable", ui-monospace, monospace`;
 
   const logoImage = layout.logo ? await loadImage(layout.logo) : null;
   const logoW = logoImage ? px(template.widthMm * layout.logoScale, dpi) : 0;
@@ -416,6 +463,18 @@ export async function renderTemplate(
         y += subSize * 1.4;
       }
     }
+    // The third tier — a contact line or tagline — sits closer to the
+    // supporting line than the supporting line sits to the headline: it reads
+    // as part of the same cluster rather than a fourth independent block.
+    const detailLines = wrap(ctx, layout.detail, width, horizontal ? 4 : 3);
+    if (detailLines.length) {
+      y += gap * 0.4;
+      ctx.font = detailFont;
+      for (const line of detailLines) {
+        ctx.fillText(line, x, y);
+        y += detailSize * 1.35;
+      }
+    }
     return y - top;
   };
 
@@ -424,9 +483,13 @@ export async function renderTemplate(
     const headlineLines = wrap(ctx, layout.headline, width, 2).length;
     ctx.font = subFont;
     const subLines = wrap(ctx, layout.sub, width, horizontal ? 3 : 2).length;
+    ctx.font = detailFont;
+    const detailLines = wrap(ctx, layout.detail, width, horizontal ? 4 : 3).length;
     void left;
     return (
-      headlineLines * headlineSize * 1.2 + (subLines ? gap * 0.6 + subLines * subSize * 1.4 : 0)
+      headlineLines * headlineSize * 1.2 +
+      (subLines ? gap * 0.6 + subLines * subSize * 1.4 : 0) +
+      (detailLines ? gap * 0.4 + detailLines * detailSize * 1.35 : 0)
     );
   };
 
@@ -718,6 +781,48 @@ export function analyzePrintRisk(
         layout.pattern !== "none"
           ? "The code carries its own background colour, so it prints as a solid rectangle interrupting the pattern. That is what protects the quiet zone a reader needs — match the code's background to the piece if you would rather it sat flush."
           : "The piece's background and the code's own background are different colours, so the code will print as a visible tile rather than sitting flush. Match them if you want the code to blend into the piece.",
+    });
+  }
+
+  // The QR code has its own contrast checks; the words next to it had none,
+  // which meant a card could pass every scan-risk check and still ship with
+  // a name nobody can read. Only worth raising when there is text to protect
+  // — crop marks and a keyline are graphic elements, not body copy, and do
+  // not need the same bar.
+  const hasText = [layout.headline, layout.sub, layout.detail].some((line) => line.trim() !== "");
+  if (hasText) {
+    const textContrast = contrastRatio(layout.ink, layout.background);
+    if (textContrast < 3) {
+      findings.push({
+        level: "critical",
+        title: "Card text is unreadable",
+        detail: `Ink and background differ by ${textContrast.toFixed(1)}:1. Below roughly 3:1 the headline and supporting lines stop reading as text and become texture — raise the contrast between ink and card colour, or move to a plain background.`,
+      });
+    } else if (textContrast < 4.5) {
+      findings.push({
+        level: "marginal",
+        title: "Card text is low contrast",
+        detail: `Ink and background differ by ${textContrast.toFixed(1)}:1, under the 4.5:1 that keeps small print comfortable at arm's length. It will read in good light; raise the contrast if the piece needs to hold up in worse conditions.`,
+      });
+    }
+  }
+
+  // Margin is the only thing standing between live content and the trim. A
+  // cutter has real tolerance, and print convention keeps text and marks
+  // several millimetres clear of the edge for exactly that reason — the same
+  // logic as the quiet zone, applied to the piece instead of the code.
+  const margin = marginMm(layout, template);
+  if (margin < 2) {
+    findings.push({
+      level: "critical",
+      title: "Margin too tight for print",
+      detail: `The safe area is ${margin.toFixed(1)} mm from the trim. A cutter's tolerance alone can exceed that, and anything sitting in it risks being sliced off in production rather than merely looking cramped. Widen the margin.`,
+    });
+  } else if (margin < 4) {
+    findings.push({
+      level: "marginal",
+      title: "Margin narrower than usual",
+      detail: `The safe area is ${margin.toFixed(1)} mm from the trim. Print shops conventionally keep live content 4–5 mm clear to absorb normal cutting tolerance — comfortable on a home printer, tighter if this goes to a commercial press.`,
     });
   }
 

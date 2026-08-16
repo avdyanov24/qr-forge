@@ -4,8 +4,10 @@ import { placementRect } from "../patterns";
 import {
   analyzePrintRisk,
   DEFAULT_LAYOUT,
+  detailSizeMm,
   EXPORT_DPI,
   headlineSizeMm,
+  marginMm,
   moduleSizeMm,
   planSheet,
   px,
@@ -42,6 +44,12 @@ describe("px", () => {
   it("produces the standard A5 pixel size at print resolution", () => {
     expect(px(148, EXPORT_DPI)).toBe(1748);
     expect(px(210, EXPORT_DPI)).toBe(2480);
+  });
+
+  it("produces the standard 3.5 x 2 in US business card size at print resolution", () => {
+    // 88.9/50.8 mm are 3.5/2 in exactly, so this must equal 3.5/2 * 300.
+    expect(px(88.9, EXPORT_DPI)).toBe(1050);
+    expect(px(50.8, EXPORT_DPI)).toBe(600);
   });
 
   it("rounds to whole pixels", () => {
@@ -98,6 +106,46 @@ describe("headlineSizeMm and subSizeMm", () => {
       template.subMm * 0.7,
       6,
     );
+  });
+});
+
+describe("detailSizeMm", () => {
+  it("returns the template's own size at scale 1", () => {
+    const template = templateById("card");
+    expect(detailSizeMm(layout({ detailScale: 1 }), template)).toBe(template.detailMm);
+  });
+
+  it("scales proportionally, independently of headline and sub", () => {
+    const template = templateById("card");
+    expect(
+      detailSizeMm(layout({ detailScale: 1.5, headlineScale: 2, subScale: 0.5 }), template),
+    ).toBeCloseTo(template.detailMm * 1.5, 6);
+  });
+
+  it("is smaller than the supporting line by default on every template", () => {
+    // A contact line reading larger than the line above it would invert the
+    // hierarchy the three tiers are meant to express.
+    for (const template of TEMPLATES) {
+      expect(template.detailMm).toBeLessThan(template.subMm);
+    }
+  });
+});
+
+describe("marginMm", () => {
+  it("returns the template's own inset at scale 1", () => {
+    const template = templateById("card");
+    expect(marginMm(layout({ marginScale: 1 }), template)).toBe(template.padMm);
+  });
+
+  it("scales proportionally", () => {
+    const template = templateById("card");
+    expect(marginMm(layout({ marginScale: 0.5 }), template)).toBe(template.padMm * 0.5);
+  });
+
+  it("defaults comfortably above the print-safe floor on every template", () => {
+    for (const template of TEMPLATES) {
+      expect(template.padMm).toBeGreaterThanOrEqual(4);
+    }
   });
 });
 
@@ -192,6 +240,78 @@ describe("analyzePrintRisk — the code's own background", () => {
       25,
     ).find((f) => f.title === "Code prints as a visible tile");
     expect(patterned?.detail).toMatch(/quiet zone/i);
+  });
+});
+
+describe("analyzePrintRisk — card text contrast", () => {
+  const titles = (ink: string, over: Partial<LayoutConfig> = {}) =>
+    analyzePrintRisk(config(), layout({ background: "#FFFFFF", ink, ...over }), 25).map(
+      (f) => f.title,
+    );
+
+  it("says nothing about text when there is no text on the piece", () => {
+    const found = titles("#959595", { headline: "", sub: "", detail: "" });
+    expect(found).not.toContain("Card text is unreadable");
+    expect(found).not.toContain("Card text is low contrast");
+  });
+
+  it("accepts high-contrast ink", () => {
+    expect(titles("#08080A")).not.toContain("Card text is unreadable");
+    expect(titles("#08080A")).not.toContain("Card text is low contrast");
+  });
+
+  // #949494 and #959595 sit one hex step apart either side of 3:1 against
+  // white — they pin the critical boundary itself.
+  it("treats ink just above 3:1 as a caution, not a failure", () => {
+    expect(titles("#949494")).toContain("Card text is low contrast");
+    expect(titles("#949494")).not.toContain("Card text is unreadable");
+  });
+
+  it("treats ink just below 3:1 as unreadable", () => {
+    expect(titles("#959595")).toContain("Card text is unreadable");
+  });
+
+  // #767676 and #777777 sit one hex step apart either side of 4.5:1.
+  it("accepts ink just above the 4.5:1 comfort floor", () => {
+    expect(titles("#767676")).not.toContain("Card text is low contrast");
+  });
+
+  it("cautions on ink just below the 4.5:1 comfort floor", () => {
+    expect(titles("#777777")).toContain("Card text is low contrast");
+  });
+
+  it("checks each text tier on its own, not just the headline", () => {
+    const onlyDetail = titles("#959595", { headline: "", sub: "", detail: "hello" });
+    expect(onlyDetail).toContain("Card text is unreadable");
+  });
+});
+
+describe("analyzePrintRisk — margin", () => {
+  const titles = (over: Partial<LayoutConfig> = {}) =>
+    analyzePrintRisk(config(), layout(over), 25).map((f) => f.title);
+
+  it("says nothing at the template default", () => {
+    expect(titles({ marginScale: 1 })).not.toContain("Margin narrower than usual");
+    expect(titles({ marginScale: 1 })).not.toContain("Margin too tight for print");
+  });
+
+  it("cautions once the margin drops under 4 mm", () => {
+    // card's default pad is 7 mm; 0.5x lands at 3.5 mm.
+    expect(titles({ template: "card", marginScale: 0.5 })).toContain("Margin narrower than usual");
+  });
+
+  it("escalates once the margin drops under 2 mm", () => {
+    expect(titles({ template: "card", marginScale: 0.25 })).toContain("Margin too tight for print");
+    expect(titles({ template: "card", marginScale: 0.25 })).not.toContain(
+      "Margin narrower than usual",
+    );
+  });
+
+  it("can be rescued by widening the margin back up", () => {
+    expect(titles({ template: "card", marginScale: 0.25 })).toContain("Margin too tight for print");
+    expect(titles({ template: "card", marginScale: 1.5 })).not.toContain(
+      "Margin too tight for print",
+    );
   });
 });
 
