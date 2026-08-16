@@ -5,6 +5,7 @@ const outcome = (id: string, decoded: boolean): StressOutcome => ({
   id,
   label: id,
   detail: "",
+  remedy: [],
   decoded,
 });
 

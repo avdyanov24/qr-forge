@@ -16,6 +16,8 @@ export interface StressCondition {
   label: string;
   /** What real situation this stands in for. */
   detail: string;
+  /** What to change to pass it, most effective first. */
+  remedy: string[];
   /** Draws the damaged code onto a fresh canvas and returns it. */
   apply: (source: ImageBitmap) => HTMLCanvasElement;
 }
@@ -24,6 +26,7 @@ export interface StressOutcome {
   id: string;
   label: string;
   detail: string;
+  remedy: string[];
   decoded: boolean;
 }
 
@@ -54,6 +57,11 @@ export const CONDITIONS: StressCondition[] = [
     id: "clean",
     label: "Clean render",
     detail: "The code exactly as designed, at full size. If this fails, nothing else matters.",
+    remedy: [
+      "Raise the contrast between the modules and the background.",
+      "Check the three corner squares are as dark as the rest — they carry no error correction.",
+      "If a logo is covering the middle, shrink it or raise the error correction level.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -67,6 +75,11 @@ export const CONDITIONS: StressCondition[] = [
     label: "Read from across the room",
     detail:
       "Downscaled to roughly what a phone resolves when the code is small in frame. This is where a dense payload on a small piece gives out.",
+    remedy: [
+      "Shorten the encoded text. Fewer characters means fewer modules, and each one gets bigger.",
+      "Point the code at a short URL on a domain you control, and redirect from there.",
+      "Print it larger, or enlarge the code on the piece in Layout mode.",
+    ],
     apply: (source) => {
       const small = 132;
       const canvas = canvasOf(small);
@@ -80,6 +93,11 @@ export const CONDITIONS: StressCondition[] = [
     id: "blur",
     label: "Out of focus",
     detail: "A camera that has not settled, or a code read while moving.",
+    remedy: [
+      "Shorten the text so the modules are physically bigger — blur closes fine gaps first.",
+      "Avoid the smallest dot styles; square modules survive defocus better than dots.",
+      "Print larger if the content cannot shrink.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -94,6 +112,11 @@ export const CONDITIONS: StressCondition[] = [
     label: "Ink spread",
     detail:
       "Cheap paper wicks ink and dark modules grow into their neighbours. Fine modules close up first.",
+    remedy: [
+      "Shorten the text so each module is wider than the ink can creep.",
+      "Use square dots rather than dots or classy styles, which are already thin.",
+      "Ask for a better paper stock, or print larger.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -109,6 +132,11 @@ export const CONDITIONS: StressCondition[] = [
     id: "glare",
     label: "Glare and low light",
     detail: "A laminated card under a light, or a screen photographed at an angle.",
+    remedy: [
+      "Increase contrast — push the foreground darker and the background lighter.",
+      "Avoid mid-tone colours and gradients that end pale.",
+      "Consider a matt finish rather than gloss lamination.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -122,6 +150,10 @@ export const CONDITIONS: StressCondition[] = [
     id: "angle",
     label: "Held at an angle",
     detail: "Nobody lines a camera up square. Rotation plus a little perspective squeeze.",
+    remedy: [
+      "Widen the quiet zone so readers can find the code's edges from off-axis.",
+      "Raise the error correction level to give the reader more to work with.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -138,6 +170,11 @@ export const CONDITIONS: StressCondition[] = [
     label: "Scuffed or covered",
     detail:
       "A thumb over the corner, a crease, a sticker rubbed on a bag. This is what the error-correction budget is actually for.",
+    remedy: [
+      "Raise the error correction level — this is precisely what it pays for.",
+      "If a logo is fitted, shrink it: it is spending the same budget.",
+      "Shorten the text, which leaves proportionally more recovery for damage.",
+    ],
     apply: (source) => {
       const canvas = canvasOf(SIZE);
       const ctx = canvas.getContext("2d")!;
@@ -155,6 +192,11 @@ export const CONDITIONS: StressCondition[] = [
     label: "Sent through a chat app",
     detail:
       "Messengers and social platforms re-encode images hard. Sharp black-and-white edges are exactly what that handles worst.",
+    remedy: [
+      "Export PNG or SVG rather than JPEG, and at a larger size.",
+      "Shorten the text so the grid is coarser and survives re-encoding.",
+      "Share the file rather than a screenshot of it where you can.",
+    ],
     apply: (source) => {
       // Downscale and back up, which is the visible half of what aggressive
       // re-encoding does to a fine grid.
@@ -210,6 +252,7 @@ export async function runStressTest(source: ImageBitmap, expected: string): Prom
         id: condition.id,
         label: condition.label,
         detail: condition.detail,
+        remedy: condition.remedy,
         decoded,
       };
     }),

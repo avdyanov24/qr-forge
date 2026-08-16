@@ -60,7 +60,25 @@ export function StressTest({
                 </span>
               </div>
               {!outcome.decoded && (
-                <p className="mt-2 text-[12px] leading-[1.6] text-ash">{outcome.detail}</p>
+                <>
+                  <p className="mt-2 text-[12px] leading-[1.6] text-ash">{outcome.detail}</p>
+                  {/*
+                    Naming the failure without naming the fix leaves someone
+                    stuck, so the actions are listed in the order most likely
+                    to help.
+                  */}
+                  <p className="label mt-3 mb-2">To fix</p>
+                  <ul className="flex flex-col gap-1.5">
+                    {outcome.remedy.map((step) => (
+                      <li key={step} className="flex gap-2 text-[12px] leading-[1.6] text-ash">
+                        <span aria-hidden className="text-bone">
+                          ·
+                        </span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </div>
           ))}
