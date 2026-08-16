@@ -264,13 +264,17 @@ export default function App() {
           </div>
         </header>
 
-        {mode === "Layout" && (
-          <LayoutPanel layout={layout} onChange={setLayoutValue} onError={setNotice} />
-        )}
-
+        {/*
+          First in both modes on purpose — presets are the fastest way to a
+          good result, so they should never be something you scroll past.
+        */}
         <Section title="Style">
           <PresetGrid activeId={presetId} onApply={usePreset} />
         </Section>
+
+        {mode === "Layout" && (
+          <LayoutPanel layout={layout} onChange={setLayoutValue} onError={setNotice} />
+        )}
 
         {mode === "Code" && (
           <>
@@ -286,114 +290,124 @@ export default function App() {
               />
             </Section>
 
-            <Section title="Colour">
+            <Section title="Appearance">
               <ColorField
                 label="Foreground"
                 value={config.foreground}
                 onChange={(value) => set("foreground", value)}
               />
-
-              <Select
-                label="Gradient"
-                value={config.gradient?.type ?? "none"}
-                options={GRADIENT_TYPES}
-                onChange={(value) =>
-                  set(
-                    "gradient",
-                    value === "none"
-                      ? null
-                      : {
-                          type: value as GradientType,
-                          color: config.gradient?.color ?? "#C8A24A",
-                          rotation: config.gradient?.rotation ?? 45,
-                        },
-                  )
-                }
-              />
-
-              {config.gradient && (
-                <>
-                  <ColorField
-                    label="Gradient end"
-                    value={config.gradient.color}
-                    onChange={(value) => set("gradient", { ...config.gradient!, color: value })}
-                  />
-                  {config.gradient.type === "linear" && (
-                    <Slider
-                      label="Angle"
-                      value={config.gradient.rotation}
-                      min={0}
-                      max={360}
-                      step={15}
-                      display={`${config.gradient.rotation}°`}
-                      onChange={(value) =>
-                        set("gradient", { ...config.gradient!, rotation: value })
-                      }
-                    />
-                  )}
-                </>
-              )}
-
               <ColorField
                 label="Background"
                 value={config.background}
                 onChange={(value) => set("background", value)}
               />
-
-              <Segmented
-                label="Corner colour"
-                value={config.cornerColor ? "Custom" : "Match"}
-                options={["Match", "Custom"]}
-                onChange={(value) =>
-                  set("cornerColor", value === "Custom" ? config.foreground : null)
-                }
-              />
-              {config.cornerColor && (
-                <ColorField
-                  label="Corners"
-                  value={config.cornerColor}
-                  onChange={(value) => set("cornerColor", value)}
-                />
-              )}
-            </Section>
-
-            <Section title="Form">
               <Select
                 label="Dot style"
                 value={config.dotStyle}
                 options={DOT_STYLES}
                 onChange={(value) => set("dotStyle", value)}
               />
-              <Select
-                label="Corner style"
-                value={config.cornerStyle}
-                options={CORNER_STYLES}
-                onChange={(value) => set("cornerStyle", value)}
-              />
-              <Select
-                label="Corner centre"
-                value={config.cornerDotStyle}
-                options={CORNER_DOT_STYLES}
-                onChange={(value) => set("cornerDotStyle", value)}
-              />
-              <Select
-                label="Frame"
-                value={config.shape}
-                options={SHAPES}
-                onChange={(value) => set("shape", value)}
-              />
-              <Slider
-                label="Quiet zone"
-                value={config.margin}
-                min={MARGIN_MIN}
-                max={MARGIN_MAX}
-                step={MARGIN_STEP}
-                display={`${Math.round(config.margin * 100)}%`}
-                onChange={(value) => set("margin", value)}
-              />
+
+              <Disclosure
+                summary="Gradient & corner colour"
+                defaultOpen={config.gradient !== null || config.cornerColor !== null}
+              >
+                <Select
+                  label="Gradient"
+                  value={config.gradient?.type ?? "none"}
+                  options={GRADIENT_TYPES}
+                  onChange={(value) =>
+                    set(
+                      "gradient",
+                      value === "none"
+                        ? null
+                        : {
+                            type: value as GradientType,
+                            color: config.gradient?.color ?? "#C8A24A",
+                            rotation: config.gradient?.rotation ?? 45,
+                          },
+                    )
+                  }
+                />
+                {config.gradient && (
+                  <>
+                    <ColorField
+                      label="Gradient end"
+                      value={config.gradient.color}
+                      onChange={(value) => set("gradient", { ...config.gradient!, color: value })}
+                    />
+                    {config.gradient.type === "linear" && (
+                      <Slider
+                        label="Angle"
+                        value={config.gradient.rotation}
+                        min={0}
+                        max={360}
+                        step={15}
+                        display={`${config.gradient.rotation}°`}
+                        onChange={(value) =>
+                          set("gradient", { ...config.gradient!, rotation: value })
+                        }
+                      />
+                    )}
+                  </>
+                )}
+                <Segmented
+                  label="Corner colour"
+                  value={config.cornerColor ? "Custom" : "Match"}
+                  options={["Match", "Custom"]}
+                  onChange={(value) =>
+                    set("cornerColor", value === "Custom" ? config.foreground : null)
+                  }
+                />
+                {config.cornerColor && (
+                  <ColorField
+                    label="Corners"
+                    value={config.cornerColor}
+                    onChange={(value) => set("cornerColor", value)}
+                  />
+                )}
+              </Disclosure>
+
+              <Disclosure
+                summary="Corner & frame style"
+                defaultOpen={
+                  config.cornerStyle !== DEFAULT_CONFIG.cornerStyle ||
+                  config.cornerDotStyle !== DEFAULT_CONFIG.cornerDotStyle ||
+                  config.shape !== DEFAULT_CONFIG.shape ||
+                  config.margin !== DEFAULT_CONFIG.margin
+                }
+              >
+                <Select
+                  label="Corner style"
+                  value={config.cornerStyle}
+                  options={CORNER_STYLES}
+                  onChange={(value) => set("cornerStyle", value)}
+                />
+                <Select
+                  label="Corner centre"
+                  value={config.cornerDotStyle}
+                  options={CORNER_DOT_STYLES}
+                  onChange={(value) => set("cornerDotStyle", value)}
+                />
+                <Select
+                  label="Frame"
+                  value={config.shape}
+                  options={SHAPES}
+                  onChange={(value) => set("shape", value)}
+                />
+                <Slider
+                  label="Quiet zone"
+                  value={config.margin}
+                  min={MARGIN_MIN}
+                  max={MARGIN_MAX}
+                  step={MARGIN_STEP}
+                  display={`${Math.round(config.margin * 100)}%`}
+                  onChange={(value) => set("margin", value)}
+                />
+              </Disclosure>
             </Section>
 
-            <Section title="Encoding">
+            <Section title="Error correction">
               <Segmented
                 label="Error correction"
                 value={config.ecc}

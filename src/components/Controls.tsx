@@ -122,13 +122,29 @@ export function Segmented<T extends string>({
 }
 
 /**
- * Collapsed explanation. Native <details> so it opens on Enter and Space and
- * announces its state without any of that being written here. Closed by
- * default — the rail should stay quiet until someone asks a question.
+ * Collapsed explanation, or a collapsed group of controls. Native <details>
+ * so it opens on Enter and Space and announces its state without any of that
+ * being written here. Closed by default — the rail should stay quiet until
+ * someone asks a question.
+ *
+ * When it holds live controls rather than prose, a design already using one
+ * should not have to go looking for it — pass defaultOpen so a customised
+ * group starts open. It is read once, at mount, exactly like defaultValue on
+ * a form field: after that the user's own clicks are the only thing that
+ * moves it, even as whatever produced defaultOpen keeps changing around it.
  */
-export function Disclosure({ summary, children }: { summary: string; children: ReactNode }) {
+export function Disclosure({
+  summary,
+  children,
+  defaultOpen = false,
+}: {
+  summary: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [initiallyOpen] = useState(defaultOpen);
   return (
-    <details className="group border-t border-edge pt-4">
+    <details open={initiallyOpen} className="group border-t border-edge pt-4">
       <summary className="label flex cursor-pointer list-none items-center justify-between hover:text-bone [&::-webkit-details-marker]:hidden">
         {summary}
         <span aria-hidden className="font-mono text-[12px] leading-none">
@@ -136,7 +152,7 @@ export function Disclosure({ summary, children }: { summary: string; children: R
           <span className="hidden group-open:inline">−</span>
         </span>
       </summary>
-      <div className="mt-4 flex flex-col gap-3 text-[12px] leading-[1.65] text-ash">{children}</div>
+      <div className="mt-4 flex flex-col gap-4 text-[12px] leading-[1.65] text-ash">{children}</div>
     </details>
   );
 }

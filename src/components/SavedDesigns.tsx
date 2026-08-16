@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { Field } from "./Controls";
+import { Disclosure, Field } from "./Controls";
 import type { SavedDesign } from "../lib/storage";
+
+/** Shown inline before the rest folds behind a disclosure. */
+const VISIBLE_COUNT = 3;
 
 function when(savedAt: number): string {
   if (!savedAt) return "";
@@ -10,6 +13,41 @@ function when(savedAt: number): string {
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
+}
+
+function DesignRow({
+  design,
+  onRestore,
+  onDelete,
+}: {
+  design: SavedDesign;
+  onRestore: (design: SavedDesign) => void;
+  onDelete: (design: SavedDesign) => void;
+}) {
+  return (
+    <div className="panel flex items-center gap-2 px-3 py-2.5">
+      <button
+        type="button"
+        className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 text-left"
+        onClick={() => onRestore(design)}
+      >
+        <span className="w-full truncate font-mono text-[12px] leading-none text-bone">
+          {design.name}
+        </span>
+        <span className="label">
+          {design.mode} · {when(design.savedAt)}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="cursor-pointer px-1 font-mono text-[14px] leading-none text-ash hover:text-bone"
+        aria-label={`Delete ${design.name}`}
+        onClick={() => onDelete(design)}
+      >
+        ×
+      </button>
+    </div>
+  );
 }
 
 export function SavedDesigns({
@@ -28,6 +66,8 @@ export function SavedDesigns({
   onDelete: (design: SavedDesign) => void;
 }) {
   const [name, setName] = useState("");
+  const visible = designs.slice(0, VISIBLE_COUNT);
+  const rest = designs.slice(VISIBLE_COUNT);
 
   if (!supported) {
     return (
@@ -70,33 +110,27 @@ export function SavedDesigns({
 
       {notice && <p className="font-mono text-[11px] leading-[1.5] text-bone">{notice}</p>}
 
-      {designs.length > 0 && (
+      {visible.length > 0 && (
         <div className="flex flex-col gap-px border border-edge">
-          {designs.map((design) => (
-            <div key={design.id} className="panel flex items-center gap-2 px-3 py-2.5">
-              <button
-                type="button"
-                className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 text-left"
-                onClick={() => onRestore(design)}
-              >
-                <span className="w-full truncate font-mono text-[12px] leading-none text-bone">
-                  {design.name}
-                </span>
-                <span className="label">
-                  {design.mode} · {when(design.savedAt)}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="cursor-pointer px-1 font-mono text-[14px] leading-none text-ash hover:text-bone"
-                aria-label={`Delete ${design.name}`}
-                onClick={() => onDelete(design)}
-              >
-                ×
-              </button>
-            </div>
+          {visible.map((design) => (
+            <DesignRow key={design.id} design={design} onRestore={onRestore} onDelete={onDelete} />
           ))}
         </div>
+      )}
+
+      {rest.length > 0 && (
+        <Disclosure summary={`${rest.length} more`}>
+          <div className="flex flex-col gap-px border border-edge">
+            {rest.map((design) => (
+              <DesignRow
+                key={design.id}
+                design={design}
+                onRestore={onRestore}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </Disclosure>
       )}
 
       <p className="text-[12px] leading-[1.6] text-ash">
