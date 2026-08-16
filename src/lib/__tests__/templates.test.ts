@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG, type QrConfig } from "../qr";
+import { placementRect } from "../patterns";
 import {
   analyzePrintRisk,
   DEFAULT_LAYOUT,
   EXPORT_DPI,
   moduleSizeMm,
+  planSheet,
   px,
   qrWidthMm,
   TEMPLATES,
@@ -217,5 +219,63 @@ describe("wrap", () => {
 
   it("collapses runs of whitespace", () => {
     expect(wrap(ctx(), "a    b", 1000, 2)).toEqual(["a b"]);
+  });
+});
+
+describe("planSheet", () => {
+  it("fits eight business cards on A4", () => {
+    // 190 × 277 mm usable, 4 mm gutter: (190+4)/(85+4) = 2, (277+4)/(55+4) = 4.
+    expect(planSheet(layout({ template: "card" }))).toEqual({
+      columns: 2,
+      rows: 4,
+      perSheet: 8,
+    });
+  });
+
+  it("fits fewer of a larger piece", () => {
+    const cards = planSheet(layout({ template: "card" })).perSheet;
+    const flyers = planSheet(layout({ template: "flyer" })).perSheet;
+    expect(flyers).toBeLessThan(cards);
+    expect(flyers).toBeGreaterThan(0);
+  });
+
+  it("reports zero rather than a negative count when nothing fits", () => {
+    // A5 poster is 148 × 210; two will not sit side by side inside the margins.
+    const plan = planSheet(layout({ template: "poster" }));
+    expect(plan.columns).toBeGreaterThanOrEqual(0);
+    expect(plan.rows).toBeGreaterThanOrEqual(0);
+    expect(plan.perSheet).toBe(plan.columns * plan.rows);
+  });
+
+  it("never claims a piece fits more times than the paper allows", () => {
+    for (const template of TEMPLATES) {
+      const plan = planSheet(layout({ template: template.id }));
+      const usedW = plan.columns * template.widthMm;
+      const usedH = plan.rows * template.heightMm;
+      expect(usedW).toBeLessThanOrEqual(190);
+      expect(usedH).toBeLessThanOrEqual(277);
+    }
+  });
+});
+
+describe("placementRect", () => {
+  it("covers the whole piece by default", () => {
+    expect(placementRect("full", 100, 200)).toEqual([0, 0, 100, 200]);
+  });
+
+  it("keeps a band inside the piece", () => {
+    for (const placement of ["top", "bottom", "left", "right"] as const) {
+      const [x, y, w, h] = placementRect(placement, 100, 200);
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(x + w).toBeLessThanOrEqual(100);
+      expect(y + h).toBeLessThanOrEqual(200);
+    }
+  });
+
+  it("puts the bottom band below the top band", () => {
+    const [, topY] = placementRect("top", 100, 200);
+    const [, bottomY] = placementRect("bottom", 100, 200);
+    expect(bottomY).toBeGreaterThan(topY);
   });
 });

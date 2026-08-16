@@ -1,9 +1,10 @@
 import { ColorField, Field, LogoField, Section, Segmented, Select, Slider } from "./Controls";
-import { PATTERNS } from "../lib/patterns";
+import { PATTERNS, PLACEMENTS } from "../lib/patterns";
 import {
   ALIGNMENTS,
   COMPOSITIONS,
   EXPORT_DPI,
+  planSheet,
   px,
   qrWidthMm,
   TEMPLATES,
@@ -22,6 +23,7 @@ export function LayoutPanel({
   onError: (message: string | null) => void;
 }) {
   const template = templateById(layout.template);
+  const plan = planSheet(layout);
   const usesImage = layout.pattern === "image";
   const patterned = layout.pattern !== "none";
 
@@ -57,6 +59,38 @@ export function LayoutPanel({
           options={["Off", "On"]}
           onChange={(value) => onChange("keyline", value === "On")}
         />
+      </Section>
+
+      <Section title="Production">
+        <Segmented
+          label="Bleed"
+          value={layout.bleedMm > 0 ? "3 mm" : "None"}
+          options={["None", "3 mm"]}
+          onChange={(value) => onChange("bleedMm", value === "3 mm" ? 3 : 0)}
+        />
+        {layout.bleedMm > 0 && (
+          <Segmented
+            label="Crop marks"
+            value={layout.cropMarks ? "On" : "Off"}
+            options={["Off", "On"]}
+            onChange={(value) => onChange("cropMarks", value === "On")}
+          />
+        )}
+        <Segmented
+          label="Export as"
+          value={layout.sheet === "a4" ? "A4 sheet" : "One piece"}
+          options={["One piece", "A4 sheet"]}
+          onChange={(value) => onChange("sheet", value === "A4 sheet" ? "a4" : "single")}
+        />
+        {layout.sheet === "a4" && (
+          <Field label="Per sheet" value={`${plan.perSheet}`}>
+            <p className="font-mono text-[11px] leading-[1.5] text-ash">
+              {plan.perSheet > 0
+                ? `${plan.columns} × ${plan.rows} on A4, with cut guides`
+                : "This piece is too large to tile on A4"}
+            </p>
+          </Field>
+        )}
       </Section>
 
       <Section title="Arrangement">
@@ -136,6 +170,14 @@ export function LayoutPanel({
             logo={layout.backgroundImage}
             onChange={(value) => onChange("backgroundImage", value)}
             onError={onError}
+          />
+        )}
+        {patterned && (
+          <Select
+            label="Placement"
+            value={layout.patternPlacement}
+            options={PLACEMENTS}
+            onChange={(value) => onChange("patternPlacement", value)}
           />
         )}
         {patterned && !usesImage && (

@@ -25,6 +25,7 @@ import {
   DEFAULT_LAYOUT,
   EXPORT_DPI,
   moduleSizeMm,
+  renderSheet,
   renderTemplate,
   templateById,
   type LayoutConfig,
@@ -124,8 +125,12 @@ export default function App() {
     setPending("png");
     try {
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const { blob } = await renderTemplate(config, layout, EXPORT_DPI);
-      downloadBlob(blob, `qr-${layout.template}-${EXPORT_DPI}dpi.png`);
+      const sheet = layout.sheet === "a4";
+      const { blob } = sheet
+        ? await renderSheet(config, layout, EXPORT_DPI)
+        : await renderTemplate(config, layout, EXPORT_DPI);
+      const suffix = sheet ? "a4-sheet" : `${EXPORT_DPI}dpi`;
+      downloadBlob(blob, `qr-${layout.template}-${suffix}.png`);
     } catch {
       setNotice("Export failed. Try a smaller template.");
     } finally {

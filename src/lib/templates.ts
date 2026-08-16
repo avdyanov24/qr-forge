@@ -1,6 +1,6 @@
 import QRCodeStyling from "qr-code-styling";
 import { buildOptions, type QrConfig, type RiskFinding } from "./qr";
-import { drawCover, drawPattern, type PatternId } from "./patterns";
+import { drawCover, drawPattern, type PatternId, type PatternPlacement } from "./patterns";
 
 /** Print resolution. Anything less than 300 looks soft on paper. */
 export const EXPORT_DPI = 300;
@@ -102,9 +102,15 @@ export interface LayoutConfig {
   /** Multiplies the template's own code width. */
   qrScale: number;
   pattern: PatternId;
+  patternPlacement: PatternPlacement;
   patternColor: string;
   patternScale: number;
   patternOpacity: number;
+  /** Artwork run past the trim, in mm. Printers normally ask for 3. */
+  bleedMm: number;
+  cropMarks: boolean;
+  /** Export one piece, or a full A4 sheet of them with cut guides. */
+  sheet: "single" | "a4";
   /** Used when the pattern is "image". */
   backgroundImage: string | null;
   logo: string | null;
@@ -124,9 +130,13 @@ export const DEFAULT_LAYOUT: LayoutConfig = {
   align: "center",
   qrScale: 1,
   pattern: "none",
+  patternPlacement: "full",
   patternColor: "#C8A24A",
   patternScale: 1,
   patternOpacity: 0.5,
+  bleedMm: 0,
+  cropMarks: true,
+  sheet: "single",
   backgroundImage: null,
   logo: null,
   logoScale: 0.3,
@@ -257,32 +267,53 @@ export async function renderTemplate(
   const widthPx = px(template.widthMm, dpi);
   const heightPx = px(template.heightMm, dpi);
 
+  // Bleed is artwork that runs past the trim so a slightly off cut still lands
+  // on colour rather than on white paper. The canvas grows by it on all sides
+  // and the trim sits inset.
+  const bleed = px(layout.bleedMm, dpi);
+  const sheetW = widthPx + bleed * 2;
+  const sheetH = heightPx + bleed * 2;
+
   const canvas = document.createElement("canvas");
-  canvas.width = widthPx;
-  canvas.height = heightPx;
+  canvas.width = sheetW;
+  canvas.height = sheetH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is unavailable.");
 
   // Anything outside the corner radius stays transparent — that is where the
-  // die cut would fall, so it should not print as background colour.
+  // die cut would fall, so it should not print as background colour. With
+  // bleed there is no die cut to respect, so the artwork runs to the edge.
   const radius = px(layout.cornerRadiusMm, dpi);
   ctx.save();
-  roundedPath(ctx, 0, 0, widthPx, heightPx, radius);
-  ctx.clip();
+  if (bleed === 0) {
+    roundedPath(ctx, 0, 0, sheetW, sheetH, radius);
+    ctx.clip();
+  }
 
   ctx.fillStyle = layout.background;
-  ctx.fillRect(0, 0, widthPx, heightPx);
+  ctx.fillRect(0, 0, sheetW, sheetH);
 
   if (layout.pattern === "image" && layout.backgroundImage) {
     const image = await loadImage(layout.backgroundImage);
     ctx.globalAlpha = layout.patternOpacity;
-    drawCover(ctx, image, widthPx, heightPx, image.naturalWidth, image.naturalHeight);
+    drawCover(ctx, image, sheetW, sheetH, image.naturalWidth, image.naturalHeight);
     ctx.globalAlpha = 1;
   } else if (layout.pattern !== "none" && layout.pattern !== "image") {
     ctx.globalAlpha = layout.patternOpacity;
-    drawPattern(ctx, layout.pattern, widthPx, heightPx, layout.patternColor, layout.patternScale);
+    drawPattern(
+      ctx,
+      layout.pattern,
+      sheetW,
+      sheetH,
+      layout.patternColor,
+      layout.patternScale,
+      layout.patternPlacement,
+    );
     ctx.globalAlpha = 1;
   }
+
+  // Everything from here lays out against the trim, not the bled canvas.
+  ctx.translate(bleed, bleed);
 
   // Render the code at its final pixel size so it is never upscaled.
   const qrPx = px(qrWidthMm(layout, template), dpi);
@@ -426,9 +457,139 @@ export async function renderTemplate(
 
   ctx.restore();
 
+  // Crop marks live in the bleed, outside the trim, so the cutter can see
+  // where the finished edge falls. They are set back from the corner so they
+  // never intrude on the artwork itself.
+  if (bleed > 0 && layout.cropMarks) {
+    const length = Math.round(bleed * 0.62);
+    const gapFromTrim = Math.round(bleed * 0.28);
+    ctx.strokeStyle = layout.ink;
+    ctx.lineWidth = Math.max(1, px(0.2, dpi));
+    ctx.beginPath();
+    for (const [cx, dx] of [
+      [bleed, -1],
+      [bleed + widthPx, 1],
+    ] as const) {
+      for (const [cy, dy] of [
+        [bleed, -1],
+        [bleed + heightPx, 1],
+      ] as const) {
+        ctx.moveTo(cx + dx * gapFromTrim, cy);
+        ctx.lineTo(cx + dx * (gapFromTrim + length), cy);
+        ctx.moveTo(cx, cy + dy * gapFromTrim);
+        ctx.lineTo(cx, cy + dy * (gapFromTrim + length));
+      }
+    }
+    ctx.stroke();
+  }
+
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Could not encode the layout.");
-  return { blob, moduleCount, widthPx, heightPx };
+  return { blob, moduleCount, widthPx: sheetW, heightPx: sheetH };
+}
+
+/* ---------------------------------------------------------------------- */
+/* Multi-up sheet                                                         */
+/* ---------------------------------------------------------------------- */
+
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+const SHEET_MARGIN_MM = 10;
+const SHEET_GUTTER_MM = 4;
+
+export interface SheetPlan {
+  columns: number;
+  rows: number;
+  perSheet: number;
+}
+
+/** How many pieces fit on A4, given the piece's trim size. */
+export function planSheet(layout: LayoutConfig): SheetPlan {
+  const template = templateById(layout.template);
+  const usableW = A4_WIDTH_MM - SHEET_MARGIN_MM * 2;
+  const usableH = A4_HEIGHT_MM - SHEET_MARGIN_MM * 2;
+  const columns = Math.max(
+    0,
+    Math.floor((usableW + SHEET_GUTTER_MM) / (template.widthMm + SHEET_GUTTER_MM)),
+  );
+  const rows = Math.max(
+    0,
+    Math.floor((usableH + SHEET_GUTTER_MM) / (template.heightMm + SHEET_GUTTER_MM)),
+  );
+  return { columns, rows, perSheet: columns * rows };
+}
+
+/**
+ * Tiles the piece across an A4 sheet with cut guides running to the paper
+ * edge, so a whole run can be printed on one page and trimmed with a
+ * straightedge. Bleed is dropped here — pieces sit edge to edge against their
+ * gutter, and the guides are the cut line.
+ */
+export async function renderSheet(
+  config: QrConfig,
+  layout: LayoutConfig,
+  dpi: number,
+): Promise<RenderResult> {
+  const template = templateById(layout.template);
+  const plan = planSheet(layout);
+  if (plan.perSheet === 0) {
+    throw new Error("This piece is too large to tile on A4.");
+  }
+
+  const piece = await renderTemplate(config, { ...layout, bleedMm: 0, cropMarks: false }, dpi);
+  const pieceImage = await createImageBitmap(piece.blob);
+
+  const sheetW = px(A4_WIDTH_MM, dpi);
+  const sheetH = px(A4_HEIGHT_MM, dpi);
+  const canvas = document.createElement("canvas");
+  canvas.width = sheetW;
+  canvas.height = sheetH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is unavailable.");
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, sheetW, sheetH);
+
+  const pieceW = px(template.widthMm, dpi);
+  const pieceH = px(template.heightMm, dpi);
+  const gutter = px(SHEET_GUTTER_MM, dpi);
+  const blockW = plan.columns * pieceW + (plan.columns - 1) * gutter;
+  const blockH = plan.rows * pieceH + (plan.rows - 1) * gutter;
+  const originX = Math.round((sheetW - blockW) / 2);
+  const originY = Math.round((sheetH - blockH) / 2);
+
+  for (let row = 0; row < plan.rows; row++) {
+    for (let column = 0; column < plan.columns; column++) {
+      const x = originX + column * (pieceW + gutter);
+      const y = originY + row * (pieceH + gutter);
+      ctx.drawImage(pieceImage, x, y, pieceW, pieceH);
+    }
+  }
+
+  // Guides run the full width and height of the paper so a straightedge can
+  // be laid against them past the artwork.
+  ctx.strokeStyle = "#B0B0B0";
+  ctx.lineWidth = Math.max(1, px(0.2, dpi));
+  ctx.beginPath();
+  for (let column = 0; column < plan.columns; column++) {
+    const left = originX + column * (pieceW + gutter);
+    for (const x of [left, left + pieceW]) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, sheetH);
+    }
+  }
+  for (let row = 0; row < plan.rows; row++) {
+    const top = originY + row * (pieceH + gutter);
+    for (const y of [top, top + pieceH]) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(sheetW, y);
+    }
+  }
+  ctx.stroke();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("Could not encode the sheet.");
+  return { blob, moduleCount: piece.moduleCount, widthPx: sheetW, heightPx: sheetH };
 }
 
 /* ---------------------------------------------------------------------- */

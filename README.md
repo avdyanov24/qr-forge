@@ -44,6 +44,7 @@ Layout mode, placing a finished code on a business card with a wave background. 
 - Output size from 256px to 2048px
 - Export to PNG, SVG, JPEG or WebP at the selected size
 - Scan-risk analysis: recovery-budget exhaustion, faint ink, faint finder patterns, inverted polarity, undersized quiet zone
+- Stress test: decodes the code back with a real reader under eight simulated real-world conditions
 - Zoom from 50% to 400% on the preview, in either mode, with the field scrolling under it
 - Responsive: the rail and preview stack on narrow screens, with export controls docked
 
@@ -61,14 +62,29 @@ Places a finished code on a printable piece and exports it as PNG at 300 dpi, wi
 
 Each piece takes:
 
-- **Background patterns** — waves, stripes, dots, grid, gradient, arc, or an uploaded image, with their own colour, scale and strength. Every pattern is drawn on the canvas rather than stored as a bitmap, so it stays sharp at print resolution.
+- **Background patterns** — waves, contours, stripes, hexagons, dots, halftone, scatter, grid, gradient, arc, or an uploaded image, with their own colour, scale, strength and placement. Every pattern is drawn on the canvas rather than stored as a bitmap, so it stays sharp at print resolution. Placement can hold a pattern to one band, keeping it clear of the code.
 - **Arrangement** — code above, below, left or right of the text; left, centre or right alignment; and a code size in millimetres.
 - **Copy and marks** — headline, supporting line, and an uploaded logo for the piece itself.
 - **Finish** — corner radius (the area outside it exports transparent, where a die cut would fall) and an optional keyline.
+- **Production** — 3 mm bleed with crop marks, and an A4 imposition sheet that tiles the piece with cut guides running to the paper edge. A business card comes out 2 × 4, eight to a page.
 
 The code is drawn as an opaque image carrying its own background, so it always punches a clean rectangle through whatever is behind it. That is what keeps the quiet zone intact over a busy pattern.
 
 Knowing the physical size buys a warning the pixel view cannot give you: **module size in millimetres**. A phone camera stops resolving modules below roughly 0.4 mm no matter how much error correction the code carries, and ink spread closes the gap further. The same code that sits at 1.09 mm on a bookmark drops to 0.21 mm once the URL grows and the piece shrinks to a business card — which is the failure that reaches the printer before anyone notices. Layout mode measures it from the module count the encoder actually produced and says so.
+
+## The stress test
+
+Every other check here is a prediction. Contrast maths, module-size arithmetic and error-correction budgets all reason about whether a code _should_ scan. The stress test is evidence: it renders the code as designed, damages it the way the physical world does, and asks the browser's own barcode reader whether it still decodes back to the same payload.
+
+Eight conditions — a clean render, distance, defocus, ink spread on cheap paper, glare, an angled read, a scuff covering part of the code, and the re-encoding a messenger applies. A partial read counts as a failure; it has to come back as the same string.
+
+The result names the weakness rather than grading it, because "5 of 8" says nothing on its own:
+
+> Reads cleanly, but gives out at small sizes or across a room, when the camera is not sharp and if anything covers or scuffs it.
+
+It discriminates rather than rubber-stamping. A short URL at level H reads under all eight. The same payload at level L loses the scuff test — precisely the condition error correction pays for. A 600-character payload also loses distance and focus.
+
+Needs `BarcodeDetector`, which Chrome and Edge have; elsewhere the panel says so instead of guessing.
 
 ## How the logo budget works
 
@@ -150,6 +166,7 @@ qr-forge/
 │   ├── lib/
 │   │   ├── qr.ts           # options builder, risk model, export
 │   │   ├── patterns.ts     # canvas-drawn background patterns
+│   │   ├── stress.ts       # damage conditions and the decode-back test
 │   │   └── templates.ts    # print sizes, canvas render, print-risk model
 │   ├── App.tsx             # layout and state
 │   ├── index.css           # design tokens and component styles
