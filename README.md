@@ -55,21 +55,27 @@ Layout mode, placing a finished code on a business card with a wave background. 
 
 Places a finished code on a printable piece and exports it as PNG at 300 dpi, with the pixel dimensions a printer expects.
 
-| Piece         | Trim         | Export         |
-| ------------- | ------------ | -------------- |
-| Bookmark      | 50 × 150 mm  | 591 × 1772 px  |
-| Business card | 85 × 55 mm   | 1004 × 650 px  |
-| Sticker       | 60 × 60 mm   | 709 × 709 px   |
-| Flyer A6      | 105 × 148 mm | 1240 × 1748 px |
-| Poster A5     | 148 × 210 mm | 1748 × 2480 px |
+| Piece              | Trim         | Export         |
+| ------------------ | ------------ | -------------- |
+| Bookmark           | 50 × 150 mm  | 591 × 1772 px  |
+| Business card (EU) | 85 × 55 mm   | 1004 × 650 px  |
+| Business card (US) | 89 × 51 mm   | 1050 × 600 px  |
+| Sticker            | 60 × 60 mm   | 709 × 709 px   |
+| Flyer A6           | 105 × 148 mm | 1240 × 1748 px |
+| Poster A5          | 148 × 210 mm | 1748 × 2480 px |
+
+Business cards come in two standards depending on where they get printed — 85 × 55 mm (EU/ISO) and 3.5 × 2 in / 88.9 × 50.8 mm (US) — so both are here as separate templates, each keeping the size a saved design was actually built for.
 
 Each piece takes:
 
 - **Background patterns** — waves, contours, stripes, hexagons, dots, halftone, scatter, grid, gradient, arc, or an uploaded image, with their own colour, scale, strength and placement. Every pattern is drawn on the canvas rather than stored as a bitmap, so it stays sharp at print resolution. Placement can hold a pattern to one band, keeping it clear of the code.
 - **Arrangement** — code above, below, left or right of the text; left, centre or right alignment; a code size in millimetres; and rounded corners on the code's own tile, checked against the quiet zone so the rounding cannot quietly clip a finder pattern.
-- **Copy and marks** — headline, supporting line, an independent size for each (0.6× to 2× the template's own), and an uploaded logo for the piece itself.
+- **Copy, in three tiers** — a headline, a supporting line, and a third detail line for a contact block or tagline, each independently sized (0.6× to 2× the template's own), plus an uploaded logo for the piece itself. The detail line is empty by default, so no existing design gains a line of text it never asked for.
+- **A safe margin** — the inset from the trim, adjustable rather than fixed, following the same pattern as code size and text size. Print convention keeps live content 4–5 mm clear of the trim to absorb a cutter's normal tolerance; narrower is flagged, and under 2 mm is treated as a real risk of being sliced off in production.
 - **Finish** — corner radius (the area outside it exports transparent, where a die cut would fall) and an optional keyline.
 - **Production** — 3 mm bleed with crop marks, and an A4 imposition sheet that tiles the piece with cut guides running to the paper edge. A business card comes out 2 × 4, eight to a page.
+
+The code has always had its own contrast checks; the words on the piece did not, so a card could pass every scan-risk check and still ship with a name nobody can read. The same 3:1 / 4.5:1 bar the code's own ink is held to now applies to the piece's ink against its background, whenever there is text on it to protect.
 
 The code is drawn as an opaque image carrying its own background, so it always punches a clean rectangle through whatever is behind it. That is what keeps the quiet zone intact over a busy pattern.
 
