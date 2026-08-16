@@ -330,7 +330,8 @@ export function analyzeRisk(config: QrConfig): RiskFinding[] {
 /* Export                                                                 */
 /* ---------------------------------------------------------------------- */
 
-function filename(data: string, extension: FileExtension): string {
+/** Exported for tests: the slug is easy to break and hard to notice. */
+export function filename(data: string, extension: FileExtension): string {
   const slug = data
     .replace(/^https?:\/\//, "")
     .toLowerCase()
