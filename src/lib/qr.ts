@@ -340,6 +340,21 @@ function filename(data: string, extension: FileExtension): string {
   return `qr-${slug || "code"}.${extension}`;
 }
 
+/**
+ * The encoder throws synchronously and its messages are written for whoever
+ * wrote the library. Translate them into something that names the fix.
+ */
+export function describeEncodeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/overflow/i.test(message)) {
+    return "Too much data for this error correction level. Shorten the text, or drop to a lower level — capacity falls as error correction rises.";
+  }
+  if (/no input|empty/i.test(message)) {
+    return "Nothing to encode yet.";
+  }
+  return "This content could not be encoded as a QR code.";
+}
+
 export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

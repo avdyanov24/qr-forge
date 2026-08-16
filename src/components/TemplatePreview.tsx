@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { QrConfig } from "../lib/qr";
+import { describeEncodeError, type QrConfig } from "../lib/qr";
 import {
   PREVIEW_DPI,
   renderTemplate,
@@ -11,19 +11,23 @@ export function TemplatePreview({
   config,
   layout,
   onRender,
+  onEncodeError,
 }: {
   config: QrConfig;
   layout: LayoutConfig;
   onRender: (moduleCount: number | null) => void;
+  onEncodeError: (message: string | null) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const template = templateById(layout.template);
   const empty = config.data.trim() === "";
 
   useEffect(() => {
     if (empty) {
       setUrl(null);
+      setError(null);
+      onEncodeError(null);
       return;
     }
 
@@ -35,40 +39,41 @@ export function TemplatePreview({
         if (cancelled) return;
         created = URL.createObjectURL(result.blob);
         setUrl(created);
-        setFailed(false);
+        setError(null);
+        onEncodeError(null);
         onRender(result.moduleCount);
       })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
+      .catch((thrown) => {
+        if (cancelled) return;
+        const message = describeEncodeError(thrown);
+        setUrl(null);
+        setError(message);
+        onEncodeError(message);
       });
 
     return () => {
       cancelled = true;
       if (created) URL.revokeObjectURL(created);
     };
-  }, [config, layout, empty, onRender]);
+  }, [config, layout, empty, onRender, onEncodeError]);
 
   return (
-    <div
-      className="flex w-full items-center justify-center"
-      style={{ maxWidth: `min(100%, ${template.widthMm * 4}px)` }}
-    >
-      <div
-        className="w-full"
-        style={{ aspectRatio: `${template.widthMm} / ${template.heightMm}` }}
-      >
-        {url ? (
-          <img
-            src={url}
-            alt={`${template.label} layout preview`}
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center border border-edge">
-            <span className="label">{failed ? "Render failed" : "Awaiting input"}</span>
-          </div>
-        )}
-      </div>
+    <div className="w-full" style={{ aspectRatio: `${template.widthMm} / ${template.heightMm}` }}>
+      {url ? (
+        <img
+          src={url}
+          alt={`${template.label} layout preview`}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center border border-edge p-6">
+          {error ? (
+            <p className="max-w-[320px] text-center text-[12px] leading-[1.6] text-ash">{error}</p>
+          ) : (
+            <span className="label">Awaiting input</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

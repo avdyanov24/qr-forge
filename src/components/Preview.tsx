@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCodeStyling from "qr-code-styling";
-import { buildOptions, PREVIEW_SIZE, type QrConfig } from "../lib/qr";
+import { buildOptions, describeEncodeError, PREVIEW_SIZE, type QrConfig } from "../lib/qr";
 
 /**
  * The library writes fixed width/height onto the element it appends. Strip
@@ -18,9 +18,16 @@ function fluid(mount: HTMLDivElement) {
   child.style.display = "block";
 }
 
-export function Preview({ config }: { config: QrConfig }) {
+export function Preview({
+  config,
+  onEncodeError,
+}: {
+  config: QrConfig;
+  onEncodeError: (message: string | null) => void;
+}) {
   const mount = useRef<HTMLDivElement>(null);
   const instance = useRef<QRCodeStyling | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const empty = config.data.trim() === "";
 
   useEffect(() => {
@@ -29,28 +36,57 @@ export function Preview({ config }: { config: QrConfig }) {
 
     const options = buildOptions(config, PREVIEW_SIZE);
 
-    if (!instance.current) {
-      instance.current = new QRCodeStyling(options);
-    } else {
-      instance.current.update(options);
+    // The encoder throws synchronously — capacity overflow is the common one.
+    // Without this the throw escapes the effect and unmounts the whole app.
+    try {
+      if (!instance.current) {
+        instance.current = new QRCodeStyling(options);
+      } else {
+        instance.current.update(options);
+      }
+      instance.current.append(node);
+      fluid(node);
+      setError(null);
+      onEncodeError(null);
+    } catch (thrown) {
+      // A failed update can leave the instance mid-write, so start clean next time.
+      instance.current = null;
+      const message = describeEncodeError(thrown);
+      setError(message);
+      onEncodeError(message);
+      return;
     }
-
-    instance.current.append(node);
-    fluid(node);
 
     return () => {
       node.replaceChildren();
     };
-  }, [config, empty]);
+  }, [config, empty, onEncodeError]);
+
+  useEffect(() => {
+    if (empty) {
+      setError(null);
+      onEncodeError(null);
+    }
+  }, [empty, onEncodeError]);
+
+  const hidden = empty || error !== null;
 
   return (
-    <div className="flex aspect-square w-full max-w-[540px] items-center justify-center">
-      {empty ? (
-        <div className="flex h-full w-full items-center justify-center border border-edge">
-          <span className="label">Awaiting input</span>
+    <div className="flex aspect-square w-full items-center justify-center">
+      {/*
+        The mount stays in the tree even while a message is showing. Swapping
+        it out detaches the ref, and the effect that would clear the error can
+        never run again — the code would never come back after a bad input.
+      */}
+      <div ref={mount} className={hidden ? "hidden" : "h-full w-full"} />
+      {hidden && (
+        <div className="flex h-full w-full items-center justify-center border border-edge p-6">
+          {error ? (
+            <p className="max-w-[320px] text-center text-[12px] leading-[1.6] text-ash">{error}</p>
+          ) : (
+            <span className="label">Awaiting input</span>
+          )}
         </div>
-      ) : (
-        <div ref={mount} className="h-full w-full" />
       )}
     </div>
   );
