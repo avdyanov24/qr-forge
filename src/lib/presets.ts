@@ -145,13 +145,13 @@ export const PRESETS: Preset[] = [
   {
     id: "orbit",
     name: "Orbit",
-    note: "Circular frame with rounded modules. Few readers see this one. Level Q.",
+    note: "Circular frame with classy rounded modules. Few readers see this one. Level Q.",
     code: {
       foreground: "#08080A",
       background: "#FFFFFF",
       gradient: null,
       cornerColor: null,
-      dotStyle: "rounded",
+      dotStyle: "classy-rounded",
       cornerStyle: "extra-rounded",
       cornerDotStyle: "dot",
       shape: "circle",
