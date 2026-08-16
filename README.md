@@ -45,6 +45,7 @@ Layout mode, placing a finished code on a business card with a wave background. 
 - Export to PNG, SVG, JPEG or WebP at the selected size
 - Scan-risk analysis: recovery-budget exhaustion, faint ink, faint finder patterns, inverted polarity, undersized quiet zone
 - Stress test: decodes the code back with a real reader under eight simulated real-world conditions
+- Dark and light themes, following the system preference until you choose
 - Zoom from 50% to 400% on the preview, in either mode, with the field scrolling under it
 - Responsive: the rail and preview stack on narrow screens, with export controls docked
 
@@ -78,7 +79,7 @@ Every other check here is a prediction. Contrast maths, module-size arithmetic a
 
 Eight conditions — a clean render, distance, defocus, ink spread on cheap paper, glare, an angled read, a scuff covering part of the code, and the re-encoding a messenger applies. A partial read counts as a failure; it has to come back as the same string.
 
-The result names the weakness rather than grading it, because "5 of 8" says nothing on its own:
+Anything that fails lists what to change about it, most effective first — naming a failure without naming the fix leaves you stuck. The summary names the weakness rather than grading the run, because "5 of 8" says nothing on its own:
 
 > Reads cleanly, but gives out at small sizes or across a room, when the camera is not sharp and if anything covers or scuffs it.
 
